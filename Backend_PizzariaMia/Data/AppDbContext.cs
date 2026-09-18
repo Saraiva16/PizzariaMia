@@ -15,8 +15,7 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-
-        // Configure precision for decimal properties
+        
         modelBuilder.Entity<Pizza>()
             .Property(p => p.Price)
             .HasColumnType("decimal(18,2)");

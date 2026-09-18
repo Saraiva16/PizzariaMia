@@ -55,7 +55,7 @@ namespace PizzariaMia.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Orders");
+                    b.ToTable("Orders", (string)null);
                 });
 
             modelBuilder.Entity("PizzariaMia.Models.OrderItem", b =>
@@ -90,7 +90,7 @@ namespace PizzariaMia.Migrations
 
                     b.HasIndex("PizzaId");
 
-                    b.ToTable("OrderItems");
+                    b.ToTable("OrderItems", (string)null);
                 });
 
             modelBuilder.Entity("PizzariaMia.Models.Pizza", b =>
@@ -127,7 +127,7 @@ namespace PizzariaMia.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Pizzas");
+                    b.ToTable("Pizzas", (string)null);
                 });
 
             modelBuilder.Entity("PizzariaMia.Models.User", b =>
@@ -159,7 +159,7 @@ namespace PizzariaMia.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("PizzariaMia.Models.Order", b =>
