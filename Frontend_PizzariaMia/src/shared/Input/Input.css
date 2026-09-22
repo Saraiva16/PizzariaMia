@@ -1,0 +1,24 @@
+.custom-input-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.custom-input {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+  font-family: var(--sans);
+}
+
+.custom-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}

@@ -1,0 +1,56 @@
+.custom-button {
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: var(--sans);
+  background: transparent;
+  padding: 0;
+}
+
+/* Variant: icon */
+.custom-button.variant-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin-top: 10px;
+}
+
+.custom-button.variant-icon:hover {
+  transform: translateY(-2px) scale(1.05);
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15));
+}
+
+.custom-button.variant-icon:active {
+  transform: translateY(1px) scale(0.95);
+}
+
+/* Variant: text */
+.custom-button.variant-text {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px;
+}
+
+.custom-button.variant-text:hover {
+  color: var(--accent);
+}
+
+/* Variant: primary (standard button) */
+.custom-button.variant-primary {
+  background: var(--accent);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  box-shadow: 0 4px 14px 0 var(--accent-border);
+}
+
+.custom-button.variant-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(170, 59, 255, 0.4);
+}
