@@ -6,6 +6,17 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+// Configurar CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("FrontendPolicy", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173") // Porta padrão do Vite
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 // Configure DbContext with PostgreSQL
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -31,6 +42,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Habilitar pasta estática wwwroot para leitura das imagens
+app.UseStaticFiles();
+
+// Habilitar CORS antes do Authorization
+app.UseCors("FrontendPolicy");
 
 app.UseAuthorization();
 
