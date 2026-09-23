@@ -1,0 +1,93 @@
+/* Menu Page */
+.menu-header {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .menu-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.menu-title h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-text);
+  margin: 0;
+}
+
+@media (min-width: 640px) {
+  .menu-title h2 {
+    font-size: 1.875rem;
+  }
+}
+
+.menu-title p {
+  font-size: 0.75rem;
+  color: rgba(25, 2, 3, 0.7);
+  margin-top: 0.125rem;
+  margin-bottom: 0;
+}
+
+@media (min-width: 640px) {
+  .menu-title p {
+    font-size: 0.875rem;
+  }
+}
+
+.menu-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.filter-badge {
+  background-color: white;
+  color: rgba(25, 2, 3, 0.8);
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(237, 42, 52, 0.1);
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  white-space: nowrap;
+}
+
+.filter-badge:hover {
+  background-color: rgba(244, 198, 121, 0.3);
+}
+
+.filter-badge.active {
+  background-color: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* Pizza Card Grid */
+.pizza-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .pizza-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .pizza-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

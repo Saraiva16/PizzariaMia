@@ -1,12 +1,16 @@
 import { Input } from '../../shared/Input/Input';
 import { Button } from '../../shared/Button/Button';
+import { useNavigate } from 'react-router-dom';
 import './Login.css';
 
 export default function Login() {
+  const navigate = useNavigate();
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     // Logic for login
     console.log('Login action');
+    navigate('/cardapio');
   };
 
   return (

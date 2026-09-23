@@ -1,0 +1,65 @@
+
+/* Floating Cart Button */
+.floating-cart-btn {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  max-width: 56px; /* Initially just a circle */
+  z-index: 50;
+}
+
+.floating-cart-btn:hover {
+  max-width: 300px;
+  background-color: #d11c25;
+  box-shadow: var(--shadow-xl);
+}
+
+.cart-icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-width: 24px;
+}
+
+.cart-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: var(--color-accent);
+  color: var(--color-text);
+  font-size: 0.75rem;
+  font-weight: 800;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-text {
+  font-weight: 700;
+  white-space: nowrap;
+  opacity: 0;
+  margin-left: 0;
+  font-size: 0.875rem;
+  transition: all 0.3s ease-in-out;
+}
+
+.floating-cart-btn:hover .cart-text {
+  opacity: 1;
+  margin-left: 0.75rem;
+  padding-right: 0.5rem;
+}

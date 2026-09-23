@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, Outlet } from 'react-router-dom';
+import './Layout.css';
 
 export default function Layout() {
   return (
@@ -13,14 +14,11 @@ export default function Layout() {
               <p>Cardápio Online & Delivery</p>
             </div>
           </Link>
-
-          <div className="header-actions">
-            <Link to="/cadastrar" className="nav-btn">Nova Pizza</Link>
-            <button className="cart-btn">
-              <span>Sacola</span>
-              <span className="cart-badge">2</span>
-            </button>
-          </div>
+          
+          <button className="cart-btn">
+            <span>Sacola</span>
+            <span className="cart-badge">2</span>
+          </button>
         </div>
       </header>
 
