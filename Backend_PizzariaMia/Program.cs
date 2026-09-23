@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using PizzariaMia.Data;
 using PizzariaMia.Repositories;
 
@@ -20,6 +21,12 @@ builder.Services.AddCors(options =>
 // Configure DbContext with PostgreSQL
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Configure ASP.NET Core Identity
+builder.Services.AddIdentity<PizzariaMia.Models.Usuario, Microsoft.AspNetCore.Identity.IdentityRole<int>>()
+    .AddRoles<Microsoft.AspNetCore.Identity.IdentityRole<int>>()
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
 
 // Dependency Injection for Repositories
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));

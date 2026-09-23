@@ -2,8 +2,8 @@ using PizzariaMia.Models;
 
 namespace PizzariaMia.Repositories
 {
-    public interface IUserRepository : IRepository<User>
+    public interface IUserRepository : IRepository<Usuario>
     {
-        Task<User?> GetByEmailAsync(string email);
+        Task<Usuario?> GetByEmailAsync(string email);
     }
 }

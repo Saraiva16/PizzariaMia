@@ -19,7 +19,7 @@ namespace PizzariaMia.Models
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation properties
-        public User? User { get; set; }
+        public Usuario? Usuario { get; set; }
         public ICollection<OrderItem> Items { get; set; } = new List<OrderItem>();
     }
 }
