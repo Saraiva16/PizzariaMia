@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './PizzaForm.css';
 import '../App.css';
 
 export default function PizzaForm() {

@@ -1,9 +1,9 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './App.css';
-import Layout from './shared/Layout';
+import Layout from './shared/Layout/Layout';
 import MenuPage from './pages/MenuPage';
-import PizzaForm from './shared/PizzaForm';
+import PizzaForm from './shared/PizzaForm/PizzaForm';
 
 function App() {
   return (

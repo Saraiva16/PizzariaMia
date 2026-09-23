@@ -1,4 +1,6 @@
 import React from 'react';
+import { useCart } from '../../contexts/CartContext';
+import './PizzaCard.css';
 
 interface PizzaProps {
   pizza: {
@@ -7,21 +9,39 @@ interface PizzaProps {
     description: string;
     price: number;
     imageUrl: string;
+    slices?: number;
     badge?: string;
   }
 }
 
 export default function PizzaCard({ pizza }: PizzaProps) {
+  const { addToCart } = useCart();
   const imageUrl = pizza.imageUrl || 'https://via.placeholder.com/400?text=Sem+Foto';
-
-  let badgeStyle = {};
-  if (pizza.badge === 'Vegetariana') {
-    badgeStyle = { backgroundColor: '#059669', color: 'white' };
+  const slices = pizza.slices || 8;
+  
+  let badgeClass = 'card-badge';
+  if (pizza.badge === 'Mais Pedida') {
+    badgeClass += ' badge-accent';
   } else if (pizza.badge === 'Favorita do Chefe' || pizza.badge === 'Chef') {
-    badgeStyle = { backgroundColor: 'var(--color-secondary)', color: 'var(--color-text)' };
-  } else if (pizza.badge === 'Novidade') {
-    badgeStyle = { backgroundColor: '#3b82f6', color: 'white' };
+    badgeClass += ' badge-secondary';
+  } else if (pizza.badge === 'Vegetariana') {
+    badgeClass += ' badge-emerald';
+  } else {
+    badgeClass += ' badge-accent';
   }
+
+  const formattedPrice = pizza.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  const handleAdd = () => {
+    addToCart({
+      pizzaId: pizza.id,
+      name: pizza.name,
+      price: pizza.price,
+      imageUrl: pizza.imageUrl,
+      slices: pizza.slices,
+      customization: 'Massa tradicional'
+    });
+  };
 
   return (
     <article className="pizza-card">
@@ -29,7 +49,7 @@ export default function PizzaCard({ pizza }: PizzaProps) {
         <div className="card-image-container">
           <img src={imageUrl} alt={pizza.name} className="card-image" />
           {pizza.badge && (
-            <span className="card-badge" style={badgeStyle}>
+            <span className={badgeClass}>
               {pizza.badge}
             </span>
           )}
@@ -38,7 +58,7 @@ export default function PizzaCard({ pizza }: PizzaProps) {
         <div className="card-info">
           <div className="card-header-row">
             <h3 className="card-title">{pizza.name}</h3>
-            <span className="card-slices">8 fatias</span>
+            <span className="card-slices">{slices} fatias</span>
           </div>
           <p className="card-desc">
             {pizza.description}
@@ -47,13 +67,11 @@ export default function PizzaCard({ pizza }: PizzaProps) {
       </div>
 
       <div className="card-footer">
-        <div className="card-price-wrapper">
+        <div>
           <span className="card-price-label">A partir de</span>
-          <span className="card-price">
-            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pizza.price)}
-          </span>
+          <span className="card-price">{formattedPrice}</span>
         </div>
-        <button className="card-add-btn">
+        <button className="card-add-btn" onClick={handleAdd}>
           <span>+</span>
           <span>Adicionar</span>
         </button>

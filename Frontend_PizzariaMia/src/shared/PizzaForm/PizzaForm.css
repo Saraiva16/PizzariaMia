@@ -1,0 +1,146 @@
+/* Form Styles that were already there, slightly adapted for the new layout */
+.form-container {
+  width: 100%;
+  max-width: 600px;
+  border-radius: var(--radius-xl);
+  padding: 2.5rem;
+  box-shadow: var(--shadow-xl);
+  margin: 2rem auto;
+  background-color: white;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.form-group label {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--color-text);
+}
+
+.form-input {
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  border: 2px solid rgba(0,0,0,0.05);
+  background: rgba(255, 255, 255, 0.7);
+  font-family: inherit;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  color: var(--color-text);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(237, 42, 52, 0.1);
+  background: white;
+}
+
+textarea.form-input {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.file-input-wrapper {
+  position: relative;
+  overflow: hidden;
+  display: inline-block;
+}
+
+.file-input-wrapper input[type=file] {
+  font-size: 100px;
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.btn-upload {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: var(--color-secondary);
+  color: var(--color-text);
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  border: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.file-input-wrapper:hover .btn-upload {
+  background-color: var(--color-accent);
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 1rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background-color: var(--color-primary);
+  color: white;
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-top: 1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 14px 0 rgba(237, 42, 52, 0.39);
+  cursor: pointer;
+}
+
+.submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(237, 42, 52, 0.4);
+}
+
+.submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.success-message {
+  margin-top: 2rem;
+  padding: 1rem;
+  background-color: #d4edda;
+  color: #155724;
+  border-radius: var(--radius-md);
+  text-align: center;
+  font-weight: 600;
+  animation: slideDown 0.3s ease-out forwards;
+}
+
+.error-message {
+  margin-top: 2rem;
+  padding: 1rem;
+  background-color: #f8d7da;
+  color: #721c24;
+  border-radius: var(--radius-md);
+  text-align: center;
+  font-weight: 600;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
