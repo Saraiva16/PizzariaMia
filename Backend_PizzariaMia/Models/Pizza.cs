@@ -1,4 +1,4 @@
-﻿namespace PizzariaMia.Models
+namespace PizzariaMia.Models
 {
     public class Pizza
     {
@@ -10,5 +10,8 @@
         public string? Badge { get; set; }
         public string StandarSize { get; set; } = "8 fatias";
         public bool Active { get; set; } = true;
+        
+        // Navigation properties
+        public ICollection<Ingredient> Ingredients { get; set; } = new List<Ingredient>();
     }
 }
