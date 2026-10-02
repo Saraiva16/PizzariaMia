@@ -4,3 +4,43 @@ GET {{PizzariaMia_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+# --- EVOLUTION API ---
+
+# 1. Criar Instância (SÓ SE USA UMA VEZ NA VIDA)
+POST http://localhost:8080/instance/create
+apikey: PizzariaMiaSecretKey123!
+Content-Type: application/json
+
+{
+  "instanceName": "PizzariaBot",
+  "qrcode": true,
+  "integration": "WHATSAPP-BAILEYS"
+}
+
+###
+
+# 2. Pegar NOVO QR Code (Sempre que o antigo expirar)
+GET http://localhost:8080/instance/connect/PizzariaBot
+apikey: PizzariaMiaSecretKey123!
+
+###
+
+# 3. Configurar Webhook (A campainha para o nosso C#)
+POST http://localhost:8080/webhook/set/PizzariaBot
+apikey: PizzariaMiaSecretKey123!
+Content-Type: application/json
+
+{
+  "webhook": {
+    "enabled": true,
+    "url": "http://host.docker.internal:5210/api/whatsappwebhook",
+    "byEvents": false,
+    "base64": false,
+    "events": [
+      "MESSAGES_UPSERT"
+    ]
+  }
+}
+
+###
