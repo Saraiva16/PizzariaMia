@@ -6,10 +6,9 @@ namespace PizzariaMia.Services
     public enum OrderStep
     {
         BemVindo = 0,
-        EscolhendoSabor = 1,
-        AguardandoEndereco = 2,
-        AguardandoPagamento = 3,
-        PedidoFinalizado = 4
+        AguardandoComando = 1,
+        DigitandoPedidoLivre = 2,
+        AtendimentoHumano = 3
     }
 
     public interface IBotStateService

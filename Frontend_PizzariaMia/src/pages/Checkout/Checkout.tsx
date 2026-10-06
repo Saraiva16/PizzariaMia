@@ -7,6 +7,32 @@ export default function CheckoutPage() {
   const { cartItems, removeFromCart, subtotal, totalItems } = useCart();
   const navigate = useNavigate();
   const [paymentMethod, setPaymentMethod] = useState('pix');
+  const [address, setAddress] = useState({
+    cep: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: ''
+  });
+
+  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    
+    if (name === 'cep') {
+      let formattedCep = value.replace(/\D/g, ''); // Remove tudo que não for número
+      if (formattedCep.length > 8) {
+        formattedCep = formattedCep.slice(0, 8);
+      }
+      if (formattedCep.length > 5) {
+        formattedCep = formattedCep.replace(/^(\d{5})(\d)/, '$1-$2');
+      }
+      setAddress(prev => ({ ...prev, [name]: formattedCep }));
+      return;
+    }
+
+    setAddress(prev => ({ ...prev, [name]: value }));
+  };
 
   const deliveryFee = 12.00;
   const total = subtotal + deliveryFee;
@@ -65,22 +91,81 @@ export default function CheckoutPage() {
             </div>
           </section>
 
-          {/* Delivery Address (Mocked/Disabled) */}
-          <section className="checkout-section opacity-50">
+          {/* Delivery Address */}
+          <section className="checkout-section">
             <div className="section-header">
               <h3 className="section-title">Endereço de Entrega</h3>
-              <span className="badge-soon">Em breve</span>
             </div>
-            <div className="address-box disabled">
-              <div className="address-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                  <circle cx="12" cy="10" r="3"></circle>
-                </svg>
+            <div className="address-form">
+              <div className="form-group">
+                <label htmlFor="cep">CEP</label>
+                <input 
+                  type="text" 
+                  id="cep" 
+                  name="cep" 
+                  value={address.cep} 
+                  onChange={handleAddressChange} 
+                  placeholder="00000-000"
+                />
               </div>
-              <div className="address-details">
-                <p className="address-title">Buscar endereço do perfil...</p>
-                <p className="address-subtitle">Funcionalidade disponível após integração de usuários.</p>
+              <div className="form-row">
+                <div className="form-group" style={{ flex: 3 }}>
+                  <label htmlFor="street">Rua</label>
+                  <input 
+                    type="text" 
+                    id="street" 
+                    name="street" 
+                    value={address.street} 
+                    onChange={handleAddressChange} 
+                    placeholder="Nome da rua"
+                  />
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label htmlFor="number">Número</label>
+                  <input 
+                    type="text" 
+                    id="number" 
+                    name="number" 
+                    value={address.number} 
+                    onChange={handleAddressChange} 
+                    placeholder="123"
+                  />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="complement">Complemento</label>
+                  <input 
+                    type="text" 
+                    id="complement" 
+                    name="complement" 
+                    value={address.complement} 
+                    onChange={handleAddressChange} 
+                    placeholder="Apto, Bloco, etc. (Opcional)"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="neighborhood">Bairro</label>
+                  <input 
+                    type="text" 
+                    id="neighborhood" 
+                    name="neighborhood" 
+                    value={address.neighborhood} 
+                    onChange={handleAddressChange} 
+                    placeholder="Bairro"
+                  />
+                </div>
+              </div>
+              <div className="form-group">
+                <label htmlFor="city">Cidade</label>
+                <input 
+                  type="text" 
+                  id="city" 
+                  name="city" 
+                  value={address.city} 
+                  onChange={handleAddressChange} 
+                  placeholder="Sua cidade"
+                />
               </div>
             </div>
           </section>
@@ -150,7 +235,14 @@ export default function CheckoutPage() {
               <span>{total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
             </div>
 
-            <button className="btn-finish" onClick={() => alert('Pedido finalizado com sucesso! (Mock)')}>
+            <button 
+              className="btn-finish" 
+              onClick={() => {
+                console.log('Pedido:', { cartItems, address, paymentMethod, total });
+                alert(`Pedido finalizado com sucesso!\nEndereço: ${address.street}, ${address.number}`);
+              }}
+              disabled={!address.street || !address.number || !address.neighborhood || !address.city}
+            >
               Confirmar Pedido
             </button>
           </div>
