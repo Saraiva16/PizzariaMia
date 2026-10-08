@@ -6,7 +6,10 @@ namespace PizzariaMia.Models
     public class Order
     {
         public int Id { get; set; }
-        public int UserId { get; set; }
+        public int? UserId { get; set; } // Nullable for guest users
+        
+        public string? CustomerName { get; set; }
+        public string? CustomerPhone { get; set; }
         
         [Column(TypeName = "decimal(18,2)")]
         public decimal TotalAmount { get; set; }
