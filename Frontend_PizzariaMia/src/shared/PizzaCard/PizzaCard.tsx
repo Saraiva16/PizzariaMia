@@ -1,5 +1,4 @@
 import React from 'react';
-import { useCart } from '../../contexts/CartContext';
 import './PizzaCard.css';
 
 interface PizzaProps {
@@ -11,11 +10,11 @@ interface PizzaProps {
     imageUrl: string;
     slices?: number;
     badge?: string;
-  }
+  };
+  onSelect?: (pizza: any) => void;
 }
 
-export default function PizzaCard({ pizza }: PizzaProps) {
-  const { addToCart } = useCart();
+export default function PizzaCard({ pizza, onSelect }: PizzaProps) {
   const imageUrl = pizza.imageUrl || 'https://via.placeholder.com/400?text=Sem+Foto';
   const slices = pizza.slices || 8;
   
@@ -32,19 +31,8 @@ export default function PizzaCard({ pizza }: PizzaProps) {
 
   const formattedPrice = pizza.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-  const handleAdd = () => {
-    addToCart({
-      pizzaId: pizza.id,
-      name: pizza.name,
-      price: pizza.price,
-      imageUrl: pizza.imageUrl,
-      slices: pizza.slices,
-      customization: 'Massa tradicional'
-    });
-  };
-
   return (
-    <article className="pizza-card">
+    <article className="pizza-card" onClick={() => onSelect && onSelect(pizza)} style={{ cursor: 'pointer' }}>
       <div>
         <div className="card-image-container">
           <img src={imageUrl} alt={pizza.name} className="card-image" />
@@ -71,9 +59,15 @@ export default function PizzaCard({ pizza }: PizzaProps) {
           <span className="card-price-label">A partir de</span>
           <span className="card-price">{formattedPrice}</span>
         </div>
-        <button className="card-add-btn" onClick={handleAdd}>
+        <button 
+          className="card-add-btn" 
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onSelect) onSelect(pizza);
+          }}
+        >
           <span>+</span>
-          <span>Adicionar</span>
+          <span>Configurar</span>
         </button>
       </div>
     </article>
