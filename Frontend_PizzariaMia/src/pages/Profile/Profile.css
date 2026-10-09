@@ -1,0 +1,225 @@
+.profile-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--color-background);
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 2rem;
+  background-color: var(--color-background);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: var(--color-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  transition: transform 0.2s;
+}
+
+.back-btn:hover {
+  transform: translateX(-3px);
+}
+
+.profile-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+  flex: 1;
+  text-align: center;
+}
+
+.edit-btn {
+  font-size: 0.9rem !important;
+  font-weight: 700 !important;
+  color: var(--color-primary) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+}
+
+.edit-btn.save-mode {
+  background-color: #10b981 !important;
+  color: white !important;
+  border-radius: var(--radius-md) !important;
+  padding: 0.5rem 1rem !important;
+  transition: opacity 0.2s;
+}
+
+.edit-btn.save-mode:hover {
+  opacity: 0.9;
+}
+
+.profile-content {
+  padding: 2rem;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background: white;
+  padding: 2rem;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text);
+  opacity: 0.8;
+}
+
+.input-disabled {
+  background-color: #f9f9f9 !important;
+  border-color: transparent !important;
+  color: #555 !important;
+  opacity: 1 !important; /* Overrides default browser disabled opacity */
+}
+
+.profile-actions-bottom {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: center;
+}
+
+.change-password-btn {
+  color: #666 !important;
+  text-decoration: underline !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+}
+
+.change-password-btn:hover {
+  color: var(--color-primary) !important;
+}
+
+/* Address Section Styles */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.add-link {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.2s;
+}
+
+.add-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+.addresses-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.address-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: var(--radius-md);
+  background-color: #fcfcfc;
+}
+
+.address-card.main-address {
+  border-color: var(--color-primary);
+  background-color: rgba(237, 42, 52, 0.03); /* slight red tint */
+}
+
+.address-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.address-street {
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: 0.95rem;
+}
+
+.address-comp {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.main-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: white;
+  background-color: var(--color-primary);
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+}
+
+.address-card.is-selectable {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.address-card.is-selectable:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.address-radio {
+  accent-color: var(--color-primary);
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .profile-header {
+    padding: 1rem;
+  }
+  
+  .profile-content {
+    padding: 1.5rem 1rem;
+  }
+  
+  .profile-form {
+    padding: 1.5rem;
+  }
+}
