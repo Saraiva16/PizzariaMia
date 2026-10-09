@@ -5,6 +5,8 @@ import CheckoutPage from './pages/Checkout/Checkout';
 import Register from './pages/Register/Register';
 import Profile from './pages/Profile/Profile';
 import AddAddress from './pages/Profile/AddAddress';
+import OrdersPage from './pages/Orders/Orders';
+import TrackOrder from './pages/Orders/TrackOrder';
 
 export const router = createBrowserRouter([
   {
@@ -30,5 +32,13 @@ export const router = createBrowserRouter([
   {
     path: '/perfil/endereco/novo',
     element: <AddAddress />,
+  },
+  {
+    path: '/pedidos',
+    element: <OrdersPage />,
+  },
+  {
+    path: '/pedidos/:id/acompanhar',
+    element: <TrackOrder />,
   },
 ]);

@@ -1,15 +1,42 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCart } from '../../contexts/CartContext';
+import { useCart, type CartItem } from '../../contexts/CartContext';
+import ConfirmModal from '../../shared/ConfirmModal/ConfirmModal';
+import EditCartItemModal from './components/EditCartItemModal/EditCartItemModal';
 import './Checkout.css';
 
 export default function CheckoutPage() {
-  const { cartItems, removeFromCart, subtotal, totalItems } = useCart();
+  const { cartItems, removeFromCart, updateCartItem, subtotal, totalItems } = useCart();
   const navigate = useNavigate();
   const [paymentMethod, setPaymentMethod] = useState('pix');
+  const [selectedAddress, setSelectedAddress] = useState(1);
+  const [itemToRemove, setItemToRemove] = useState<string | null>(null);
+  const [itemToEdit, setItemToEdit] = useState<CartItem | null>(null);
+
+  const mockAddresses = [
+    { id: 1, label: 'Casa', address: 'Rua das Pizzas, 123 - Apto 45', isMain: true },
+    { id: 2, label: 'Trabalho', address: 'Av. Paulista, 1000 - Andar 5', isMain: false },
+  ];
 
   const deliveryFee = 12.00;
   const total = subtotal + deliveryFee;
+
+  const handleRequestRemove = (id: string) => {
+    setItemToRemove(id);
+  };
+
+  const confirmRemove = () => {
+    if (itemToRemove) {
+      removeFromCart(itemToRemove);
+      setItemToRemove(null);
+    }
+  };
+
+  const getCustomizationText = (cust: any) => {
+    if (!cust) return '';
+    if (typeof cust === 'string') return cust;
+    return `${cust.border}${cust.notes ? ` - Obs: ${cust.notes}` : ''}`;
+  };
 
   if (totalItems === 0) {
     return (
@@ -44,44 +71,94 @@ export default function CheckoutPage() {
                   <div className="item-details">
                     <div className="item-header">
                       <h4>{item.name}</h4>
-                      <button 
-                        className="btn-remove"
-                        onClick={() => removeFromCart(item.id)}
-                        title="Remover"
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button 
+                          className="btn-edit"
+                          onClick={() => setItemToEdit(item)}
+                          title="Editar Borda/Observação"
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 20h9"></path>
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                          </svg>
+                        </button>
+                        <button 
+                          className="btn-remove"
+                          onClick={() => handleRequestRemove(item.id)}
+                          title="Remover"
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          </svg>
+                        </button>
+                      </div>
                     </div>
-                    <p className="item-desc">{item.slices} fatias • {item.customization}</p>
-                    <p className="item-price">
-                      {item.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </p>
+                    <p className="item-desc">{item.slices} fatias • {getCustomizationText(item.customization)}</p>
+                    
+                    <div className="item-footer">
+                      <div className="qty-controls">
+                        <button 
+                          onClick={() => {
+                            if (item.quantity > 1) {
+                              updateCartItem(item.id, { quantity: item.quantity - 1 });
+                            } else {
+                              handleRequestRemove(item.id);
+                            }
+                          }}
+                        >-</button>
+                        <span>{item.quantity}</span>
+                        <button 
+                          onClick={() => updateCartItem(item.id, { quantity: item.quantity + 1 })}
+                        >+</button>
+                      </div>
+                      <p className="item-price">
+                        {(item.price * item.quantity).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </p>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           </section>
 
-          {/* Delivery Address (Mocked/Disabled) */}
-          <section className="checkout-section opacity-50">
-            <div className="section-header">
+          {/* Delivery Address */}
+          <section className="checkout-section">
+            <div className="section-header" style={{ marginBottom: '1rem' }}>
               <h3 className="section-title">Endereço de Entrega</h3>
-              <span className="badge-soon">Em breve</span>
             </div>
-            <div className="address-box disabled">
-              <div className="address-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                  <circle cx="12" cy="10" r="3"></circle>
-                </svg>
-              </div>
-              <div className="address-details">
-                <p className="address-title">Buscar endereço do perfil...</p>
-                <p className="address-subtitle">Funcionalidade disponível após integração de usuários.</p>
-              </div>
+            <div className="address-options">
+              {mockAddresses.map(addr => (
+                <label key={addr.id} className={`address-option ${selectedAddress === addr.id ? 'active' : ''}`}>
+                  <input 
+                    type="radio" 
+                    name="address" 
+                    value={addr.id}
+                    checked={selectedAddress === addr.id}
+                    onChange={() => setSelectedAddress(addr.id)}
+                  />
+                  <div className="address-option-icon">
+                    {addr.label === 'Casa' ? (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                      </svg>
+                    ) : (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                      </svg>
+                    )}
+                  </div>
+                  <div className="address-option-details">
+                    <p className="address-option-title">
+                      {addr.label}
+                      {addr.isMain && <span className="address-badge">Principal</span>}
+                    </p>
+                    <p className="address-option-desc">{addr.address}</p>
+                  </div>
+                </label>
+              ))}
             </div>
           </section>
 
@@ -150,12 +227,24 @@ export default function CheckoutPage() {
               <span>{total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
             </div>
 
-            <button className="btn-finish" onClick={() => alert('Pedido finalizado com sucesso! (Mock)')}>
+            <button className="btn-finish" onClick={() => navigate('/pedidos/1105/acompanhar')}>
               Confirmar Pedido
             </button>
           </div>
         </aside>
       </div>
+      <ConfirmModal
+        isOpen={itemToRemove !== null}
+        title="Remover Pizza"
+        message="Tem certeza que deseja remover esta pizza do seu pedido?"
+        confirmText="Remover"
+        onConfirm={confirmRemove}
+        onCancel={() => setItemToRemove(null)}
+      />
+      <EditCartItemModal
+        item={itemToEdit}
+        onClose={() => setItemToEdit(null)}
+      />
     </div>
   );
 }

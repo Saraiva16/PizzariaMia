@@ -28,7 +28,10 @@ export default function PizzaModal({ pizza, onClose }: PizzaModalProps) {
         price: pizza.price,
         imageUrl: pizza.imageUrl,
         slices: pizza.slices,
-        customization: `${border}${notes ? ` - Observação: ${notes}` : ''}`
+        customization: {
+          border: border,
+          notes: notes
+        }
       });
     }
     
