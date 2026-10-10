@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using PizzariaMia.DTOs.EvolutionAPI;
 using PizzariaMia.Services;
 using System.Text.Json;
+using Microsoft.AspNetCore.SignalR;
 
 namespace PizzariaMia.Controllers
 {
@@ -12,12 +13,21 @@ namespace PizzariaMia.Controllers
         private readonly ILogger<WhatsappWebhookController> _logger;
         private readonly IEvolutionApiService _evolutionApi;
         private readonly IBotStateService _botState;
+        private readonly PizzariaMia.Data.AppDbContext _context;
+        private readonly Microsoft.AspNetCore.SignalR.IHubContext<PizzariaMia.Hubs.OrderTrackingHub> _hubContext;
 
-        public WhatsappWebhookController(ILogger<WhatsappWebhookController> logger, IEvolutionApiService evolutionApi, IBotStateService botState)
+        public WhatsappWebhookController(
+            ILogger<WhatsappWebhookController> logger, 
+            IEvolutionApiService evolutionApi, 
+            IBotStateService botState,
+            PizzariaMia.Data.AppDbContext context,
+            Microsoft.AspNetCore.SignalR.IHubContext<PizzariaMia.Hubs.OrderTrackingHub> hubContext)
         {
             _logger = logger;
             _evolutionApi = evolutionApi;
             _botState = botState;
+            _context = context;
+            _hubContext = hubContext;
         }
 
         [HttpPost]
@@ -39,6 +49,8 @@ namespace PizzariaMia.Controllers
                     var message = data.GetProperty("message");
                     string textMessage = "";
                     bool isOrderMessage = false;
+                    decimal totalOrderAmount = 0;
+                    int orderItemCount = 1;
                     
                     if (message.TryGetProperty("conversation", out var conv)) 
                         textMessage = conv.GetString();
@@ -49,13 +61,19 @@ namespace PizzariaMia.Controllers
                         // O usuário enviou um carrinho do Catálogo Nativo do WhatsApp!
                         isOrderMessage = true;
                         
+                        // Pega total amount e itemCount
+                        if (orderMsg.TryGetProperty("totalAmount1000", out var amountObj))
+                        {
+                            totalOrderAmount = amountObj.GetProperty("low").GetInt32() / 1000m;
+                        }
+                        orderItemCount = orderMsg.TryGetProperty("itemCount", out var count) ? count.GetInt32() : 1;
+
                         // Imprime o JSON completo do orderMessage no console para debug
                         Console.WriteLine("=== PAYLOAD DO ORDER MESSAGE ===");
                         Console.WriteLine(orderMsg.GetRawText());
                         Console.WriteLine("=================================");
 
-                        int itemCount = orderMsg.TryGetProperty("itemCount", out var count) ? count.GetInt32() : 1;
-                        textMessage = $"[CARRINHO NATIVO RECEBIDO COM {itemCount} ITENS]";
+                        textMessage = $"[CARRINHO NATIVO RECEBIDO COM {orderItemCount} ITENS]";
                     }
 
                     _logger.LogInformation($"[WHATSAPP WEBHOOK] Mensagem de {customerName}: {textMessage}");
@@ -65,7 +83,68 @@ namespace PizzariaMia.Controllers
                     // Se recebemos um carrinho nativo, processamos diretamente independente da etapa
                     if (isOrderMessage)
                     {
-                        await _evolutionApi.SendTextAsync(remoteJid, "✅ *Recebemos o seu carrinho do catálogo!* \nEstamos processando os itens e um atendente já vai confirmar o valor do frete e o endereço com você.");
+
+                        // Garante que o usuário existe
+                        string phoneNum = remoteJid.Split('@')[0];
+                        var user = _context.Users.FirstOrDefault(u => u.Phone == phoneNum);
+                        if (user == null)
+                        {
+                            user = new PizzariaMia.Models.User
+                            {
+                                Name = customerName,
+                                Phone = phoneNum,
+                                Email = $"{phoneNum}@whatsapp.com",
+                                PasswordHash = "whatsapp-guest",
+                                Role = "User"
+                            };
+                            _context.Users.Add(user);
+                            _context.SaveChanges();
+                        }
+
+                        // Garante que a Pizza genérica existe
+                        var genericPizza = _context.Pizzas.FirstOrDefault(p => p.Name == "Pedido via WhatsApp");
+                        if (genericPizza == null)
+                        {
+                            genericPizza = new PizzariaMia.Models.Pizza
+                            {
+                                Name = "Pedido via WhatsApp",
+                                Description = "Pizza pendente de edição pelo atendente",
+                                Price = 0,
+                                ImageUrl = "https://cdn-icons-png.flaticon.com/512/124/124034.png" // WhatsApp icon
+                            };
+                            _context.Pizzas.Add(genericPizza);
+                            _context.SaveChanges();
+                        }
+
+                        var order = new PizzariaMia.Models.Order
+                        {
+                            UserId = user.Id,
+                            AddressId = null,
+                            PaymentMethod = PizzariaMia.Models.Enums.PaymentMethod.Pix,
+                            Status = PizzariaMia.Models.Enums.OrderStatus.Pending,
+                            TotalAmount = totalOrderAmount > 0 ? totalOrderAmount : 1.00m,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow,
+                            Items = new List<PizzariaMia.Models.OrderItem>
+                            {
+                                new PizzariaMia.Models.OrderItem
+                                {
+                                    PizzaId = genericPizza.Id,
+                                    Quantity = 1,
+                                    UnitPrice = totalOrderAmount > 0 ? totalOrderAmount : 1.00m,
+                                    SubTotal = totalOrderAmount > 0 ? totalOrderAmount : 1.00m,
+                                    Notes = $"Carrinho nativo do WhatsApp com {orderItemCount} itens. Valor: {totalOrderAmount.ToString("C")}. Atendente, edite este pedido com as opções corretas baseadas no WhatsApp do cliente!"
+                                }
+                            }
+                        };
+
+                        _context.Orders.Add(order);
+                        _context.SaveChanges();
+
+                        // Dispara evento para a cozinha/painel recarregar
+                        await _hubContext.Clients.All.SendAsync("StatusChanged", "Pending");
+                        
+                        await _evolutionApi.SendTextAsync(remoteJid, $"✅ *Recebemos o seu pedido!* (Total: {totalOrderAmount.ToString("C")})\n\nUm de nossos atendentes já vai confirmar os sabores, o valor do frete e o endereço de entrega com você por aqui mesmo.");
                         await _botState.SetUserStepAsync(remoteJid, OrderStep.AtendimentoHumano);
                         return Ok(new { success = true });
                     }
