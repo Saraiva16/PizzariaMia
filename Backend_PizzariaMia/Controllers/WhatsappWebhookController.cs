@@ -48,6 +48,12 @@ namespace PizzariaMia.Controllers
                     {
                         // O usuário enviou um carrinho do Catálogo Nativo do WhatsApp!
                         isOrderMessage = true;
+                        
+                        // Imprime o JSON completo do orderMessage no console para debug
+                        Console.WriteLine("=== PAYLOAD DO ORDER MESSAGE ===");
+                        Console.WriteLine(orderMsg.GetRawText());
+                        Console.WriteLine("=================================");
+
                         int itemCount = orderMsg.TryGetProperty("itemCount", out var count) ? count.GetInt32() : 1;
                         textMessage = $"[CARRINHO NATIVO RECEBIDO COM {itemCount} ITENS]";
                     }
