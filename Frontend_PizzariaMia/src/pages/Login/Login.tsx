@@ -4,10 +4,14 @@ import { Button } from '../../shared/Button/Button';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
 
+import api from '../../services/api';
+import { toast } from 'sonner';
+
 export default function Login() {
   const navigate = useNavigate();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');
@@ -24,14 +28,29 @@ export default function Login() {
     setPhone(formatted);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Login com:', { phone, password });
-    navigate('/cardapio');
+    try {
+      setLoading(true);
+      const response = await api.post('/auth/login', {
+        phone,
+        password
+      });
+      
+      localStorage.setItem('@PizzariaMia:token', response.data.token);
+      localStorage.setItem('@PizzariaMia:user', JSON.stringify(response.data));
+      
+      toast.success("Login realizado com sucesso!");
+      navigate('/cardapio');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Erro ao realizar login.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGuestLogin = () => {
-    console.log('Login como visitante');
+    toast.success("Entrou como visitante!");
     navigate('/cardapio');
   };
 

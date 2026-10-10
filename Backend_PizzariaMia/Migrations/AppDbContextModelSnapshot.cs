@@ -22,6 +22,35 @@ namespace PizzariaMia.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("PizzariaMia.Models.Address", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsMain")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("StreetAndNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Addresses");
+                });
+
             modelBuilder.Entity("PizzariaMia.Models.Cart", b =>
                 {
                     b.Property<int>("Id")
@@ -89,6 +118,9 @@ namespace PizzariaMia.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("AddressId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -96,9 +128,6 @@ namespace PizzariaMia.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("CustomerPhone")
-                        .HasColumnType("text");
-
-                    b.Property<string>("DeliveryAddress")
                         .HasColumnType("text");
 
                     b.Property<int>("PaymentMethod")
@@ -117,6 +146,8 @@ namespace PizzariaMia.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AddressId");
 
                     b.HasIndex("UserId");
 
@@ -206,15 +237,15 @@ namespace PizzariaMia.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Phone")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -225,6 +256,17 @@ namespace PizzariaMia.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("PizzariaMia.Models.Address", b =>
+                {
+                    b.HasOne("PizzariaMia.Models.User", "User")
+                        .WithMany("Addresses")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("PizzariaMia.Models.Cart", b =>
@@ -257,9 +299,15 @@ namespace PizzariaMia.Migrations
 
             modelBuilder.Entity("PizzariaMia.Models.Order", b =>
                 {
+                    b.HasOne("PizzariaMia.Models.Address", "Address")
+                        .WithMany()
+                        .HasForeignKey("AddressId");
+
                     b.HasOne("PizzariaMia.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId");
+
+                    b.Navigation("Address");
 
                     b.Navigation("User");
                 });
@@ -291,6 +339,11 @@ namespace PizzariaMia.Migrations
             modelBuilder.Entity("PizzariaMia.Models.Order", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("PizzariaMia.Models.User", b =>
+                {
+                    b.Navigation("Addresses");
                 });
 #pragma warning restore 612, 618
         }

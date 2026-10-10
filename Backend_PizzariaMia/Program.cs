@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using PizzariaMia.Data;
 using PizzariaMia.Repositories;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,7 +16,8 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins("http://localhost:5173") // Porta padrão do Vite
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
@@ -39,6 +43,25 @@ builder.Services.AddHttpClient<PizzariaMia.Services.IEvolutionApiService, Pizzar
 builder.Services.AddScoped<PizzariaMia.Services.IBotStateService, PizzariaMia.Services.BotStateService>();
 
 builder.Services.AddControllers();
+builder.Services.AddSignalR(); // <--- Adicionado SignalR
+
+// Add JWT Authentication
+var jwtSettings = builder.Configuration.GetSection("Jwt");
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtSettings["Issuer"],
+            ValidAudience = jwtSettings["Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]!))
+        };
+    });
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -60,8 +83,10 @@ app.UseStaticFiles();
 // Habilitar CORS antes do Authorization
 app.UseCors("FrontendPolicy");
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<PizzariaMia.Hubs.OrderTrackingHub>("/orderTrackingHub"); // <--- Mapeamento do Hub
 
 app.Run();

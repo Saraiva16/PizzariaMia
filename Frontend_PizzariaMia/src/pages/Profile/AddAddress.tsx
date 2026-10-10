@@ -3,29 +3,87 @@ import { useNavigate } from 'react-router-dom';
 import { Input } from '../../shared/Input/Input';
 import { Button } from '../../shared/Button/Button';
 import './Profile.css';
+import api from '../../services/api';
+import { toast } from 'sonner';
 
 export default function AddAddress() {
   const navigate = useNavigate();
   const [address, setAddress] = useState({
+    label: '',
     street: '',
     number: '',
     complement: '',
     neighborhood: '',
-    city: 'São Paulo',
+    city: 'Guarulhos',
     state: 'SP',
     zipCode: ''
   });
+  const [loading, setLoading] = useState(false);
+
+  const applyCepMask = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/^(\d{5})(\d)/, '$1-$2')
+      .slice(0, 9);
+  };
+
+  const fetchCep = async (cep: string) => {
+    const cleanCep = cep.replace(/\D/g, '');
+    if (cleanCep.length === 8) {
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+        const data = await response.json();
+        
+        if (!data.erro) {
+          setAddress(prev => ({
+            ...prev,
+            street: data.logradouro || prev.street,
+            neighborhood: data.bairro || prev.neighborhood,
+            city: data.localidade || prev.city,
+            state: data.uf || prev.state
+          }));
+          toast.success('Endereço encontrado pelo CEP!');
+        }
+      } catch (error) {
+        console.error('Erro ao buscar CEP', error);
+      }
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+    
+    if (name === 'zipCode') {
+      value = applyCepMask(value);
+      if (value.length === 9) {
+        fetchCep(value);
+      }
+    }
+    
     setAddress(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Logic to save new address to backend would go here
-    // ...
-    navigate(-1); // Return to profile
+    setLoading(true);
+    
+    const streetAndNumber = `${address.street}, ${address.number}` + 
+      (address.complement ? ` - ${address.complement}` : '') +
+      ` - ${address.neighborhood}, ${address.city} - ${address.state}, ${address.zipCode}`;
+
+    try {
+      await api.post('/addresses', {
+        label: address.label,
+        streetAndNumber: streetAndNumber,
+        isMain: false // Back-end will handle making it main if it's the first
+      });
+      toast.success('Endereço adicionado com sucesso!');
+      navigate(-1);
+    } catch (err) {
+      toast.error('Erro ao adicionar endereço.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -44,6 +102,17 @@ export default function AddAddress() {
       <main className="profile-content">
         <form className="profile-form" onSubmit={handleSave}>
           
+          <div className="form-group">
+            <label>Como deseja chamar este endereço?</label>
+            <Input 
+              name="label"
+              value={address.label}
+              onChange={handleChange}
+              placeholder="Ex: Casa, Trabalho, Namorada"
+              required
+            />
+          </div>
+
           <div className="form-group">
             <label>CEP</label>
             <Input 

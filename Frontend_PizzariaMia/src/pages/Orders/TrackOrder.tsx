@@ -2,37 +2,98 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import './TrackOrder.css';
 
+import * as signalR from '@microsoft/signalr';
+import api from '../../services/api';
+import { toast } from 'sonner';
+
 const STAGES = [
-  { id: 1, label: 'Pedido Efetuado' },
-  { id: 2, label: 'Pedido em Preparo' },
-  { id: 3, label: 'Indo até você' },
-  { id: 4, label: 'Pedido Entregue' }
+  { id: 1, label: 'Pedido Efetuado', status: 'Pending' },
+  { id: 2, label: 'Pedido em Preparo', status: 'Preparing' },
+  { id: 3, label: 'Indo até você', status: 'OutForDelivery' },
+  { id: 4, label: 'Pedido Entregue', status: 'Completed' }
 ];
 
 export default function TrackOrder() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // Mocking current state - Let's say it's currently at stage 2
-  const [currentStage, setCurrentStage] = useState(2);
-  const [timestamps, setTimestamps] = useState<Record<number, string>>({
-    1: '20:15',
-    2: '20:20',
-  });
+  const [currentStage, setCurrentStage] = useState(1);
+  const [timestamps, setTimestamps] = useState<Record<number, string>>({});
+  const [orderDetails, setOrderDetails] = useState<any>(null);
 
-  const orderDetails = {
-    id: id || '1105',
-    items: [
-      '1x Calabresa Especial (Borda Cheddar)',
-      '1x Coca-Cola 2L'
-    ],
-    address: 'Rua das Pizzas, 123 - Apto 45',
-    total: 72.90
-  };
+  useEffect(() => {
+    api.get(`/orders/${id}`)
+      .then(response => {
+        const data = response.data;
+        setOrderDetails({
+          id: data.id,
+          items: data.items,
+          address: data.address,
+          total: data.total
+        });
+        
+        const statusStr = data.status;
+        const stageIndex = STAGES.findIndex(s => s.status === statusStr);
+        if (stageIndex >= 0) {
+          setCurrentStage(stageIndex + 1);
+          
+          const newTimestamps: Record<number, string> = {
+            1: new Date(data.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          };
+          
+          // Se já passou da primeira etapa, usar o updatedAt para a etapa atual
+          if (stageIndex > 0 && data.updatedAt) {
+            newTimestamps[stageIndex + 1] = new Date(data.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          }
+          
+          setTimestamps(newTimestamps);
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching order', error);
+        toast.error('Erro ao buscar pedido.');
+      });
+
+    // Inicia conexão WebSocket
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl('http://localhost:5210/orderTrackingHub')
+      .withAutomaticReconnect()
+      .build();
+
+    connection.start()
+      .then(() => {
+        console.log('Conectado ao SignalR Hub!');
+        connection.invoke('JoinOrderGroup', id);
+      })
+      .catch(err => console.error('SignalR Connection Error: ', err));
+
+    connection.on('StatusChanged', (newStatus: string) => {
+      toast.info(`Status do pedido atualizado: ${newStatus}`);
+      const stageIndex = STAGES.findIndex(s => s.status === newStatus);
+      if (stageIndex >= 0) {
+        setCurrentStage(stageIndex + 1);
+        setTimestamps(prev => ({
+          ...prev,
+          [stageIndex + 1]: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }));
+      }
+    });
+
+    return () => {
+      if (connection.state === signalR.HubConnectionState.Connected) {
+        connection.invoke('LeaveOrderGroup', id);
+        connection.stop();
+      }
+    };
+  }, [id]);
 
   const formatCurrency = (value: number) => {
-    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    return value ? value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00';
   };
+
+  if (!orderDetails) {
+    return <div className="track-page"><p>Carregando pedido...</p></div>;
+  }
 
   return (
     <div className="track-page">
@@ -90,9 +151,22 @@ export default function TrackOrder() {
           <div className="summary-section">
             <h3>Itens</h3>
             <ul className="summary-items">
-              {orderDetails.items.map((item, idx) => (
-                <li key={idx}>{item}</li>
-              ))}
+              {orderDetails.items.map((item: any, idx: number) => {
+                let customText = "";
+                if (item.notes && item.notes !== "{}") {
+                  try {
+                    const parsed = JSON.parse(item.notes);
+                    const elements = [];
+                    if (parsed.border && parsed.border !== 'Sem borda') elements.push(`Borda: ${parsed.border}`);
+                    if (parsed.notes) elements.push(`Obs: ${parsed.notes}`);
+                    if (elements.length > 0) customText = ` (${elements.join(', ')})`;
+                  } catch {
+                    const raw = item.notes.replace(/"/g, '');
+                    if (raw) customText = ` (${raw})`;
+                  }
+                }
+                return <li key={idx}>{item.quantity}x {item.pizzaName}{customText}</li>;
+              })}
             </ul>
           </div>
 
@@ -103,7 +177,12 @@ export default function TrackOrder() {
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                 <circle cx="12" cy="10" r="3"></circle>
               </svg>
-              <p>{orderDetails.address}</p>
+              <p>
+                {orderDetails.address 
+                  ? `${orderDetails.address.label.replace(' (Auto-Gerado)', '')} - ${orderDetails.address.street}`
+                  : 'Endereço não informado'
+                }
+              </p>
             </div>
           </div>
 

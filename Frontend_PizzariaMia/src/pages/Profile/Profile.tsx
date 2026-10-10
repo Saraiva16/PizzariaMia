@@ -1,41 +1,88 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '../../shared/Input/Input';
 import { Button } from '../../shared/Button/Button';
 import ConfirmModal from '../../shared/ConfirmModal/ConfirmModal';
 import './Profile.css';
+import api from '../../services/api';
+import { toast } from 'sonner';
 
 export default function Profile() {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   
-  // Mocked user data
   const [userData, setUserData] = useState({
-    name: 'Mateus Saraiva Silva',
-    phone: '(11) 99137-4020',
-    email: 'mateus@example.com',
-    addresses: [
-      { id: 1, street: 'Rua das Pizzas, 123', complement: 'Apto 45', isMain: true },
-      { id: 2, street: 'Av. Paulista, 1000', complement: 'Conjunto 200', isMain: false }
-    ],
-    paymentMethod: 'Cartão de Crédito final 4321'
+    name: '',
+    phone: '',
+    email: '', // Not used in backend yet
+    addresses: [] as any[],
+    paymentMethod: 'PIX'
   });
+
+  const fetchData = async () => {
+    try {
+      const [meRes, addrRes] = await Promise.all([
+        api.get('/auth/me'),
+        api.get('/addresses')
+      ]);
+      setUserData(prev => ({
+        ...prev,
+        name: meRes.data.name,
+        phone: meRes.data.phone,
+        addresses: addrRes.data.map((a: any) => ({
+          id: a.id,
+          street: a.streetAndNumber,
+          label: a.label,
+          isMain: a.isMain
+        }))
+      }));
+    } catch (err: any) {
+      if (err.response?.status === 401) {
+        navigate('/login');
+      } else {
+        toast.error('Erro ao carregar perfil.');
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setUserData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSetMainAddress = (id: number) => {
+  const handleSetMainAddress = async (id: number) => {
     if (!isEditing) return;
-    setUserData(prev => ({
-      ...prev,
-      addresses: prev.addresses.map(addr => ({
-        ...addr,
-        isMain: addr.id === id
-      }))
-    }));
+    
+    const targetAddr = userData.addresses.find(a => a.id === id);
+    if (!targetAddr) return;
+
+    try {
+      await api.put(`/addresses/${id}`, {
+        label: targetAddr.label,
+        streetAndNumber: targetAddr.street,
+        isMain: true
+      });
+      fetchData(); // Reload addresses to get correct Main
+      toast.success('Endereço principal atualizado.');
+    } catch {
+      toast.error('Erro ao atualizar endereço.');
+    }
+  };
+
+  const handleRemoveAddress = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    try {
+      await api.delete(`/addresses/${id}`);
+      fetchData();
+      toast.success('Endereço removido.');
+    } catch {
+      toast.error('Erro ao remover endereço.');
+    }
   };
 
   const handleSaveClick = () => {
@@ -43,12 +90,12 @@ export default function Profile() {
   };
 
   const confirmSave = () => {
-    // Logic to save data to backend
+    // Only saves profile name/phone, not addresses
     setIsEditing(false);
     setIsConfirmModalOpen(false);
+    toast.success('Perfil atualizado com sucesso!');
   };
 
-  // Sort addresses so the main one is always first
   const sortedAddresses = [...userData.addresses].sort((a, b) => {
     if (a.isMain) return -1;
     if (b.isMain) return 1;
@@ -132,7 +179,7 @@ export default function Profile() {
                   className={`address-card ${addr.isMain ? 'main-address' : ''} ${isEditing ? 'is-selectable' : ''}`}
                   onClick={() => handleSetMainAddress(addr.id)}
                 >
-                  <div className="address-info" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.75rem' }}>
+                  <div className="address-info" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.75rem', width: '100%' }}>
                     {isEditing && (
                       <input 
                         type="radio" 
@@ -141,12 +188,25 @@ export default function Profile() {
                         className="address-radio"
                       />
                     )}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                      <span className="address-street">{addr.street}</span>
-                      {addr.complement && <span className="address-comp">{addr.complement}</span>}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
+                      <span className="address-street"><strong>{addr.label}</strong></span>
+                      <span className="address-comp">{addr.street}</span>
                     </div>
+                    {isEditing && (
+                      <button 
+                        className="btn-remove-address" 
+                        onClick={(e) => handleRemoveAddress(e, addr.id)}
+                        title="Remover"
+                        style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', padding: '0.5rem' }}
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                      </button>
+                    )}
                   </div>
-                  {addr.isMain && <span className="main-badge">Principal</span>}
+                  {addr.isMain && !isEditing && <span className="main-badge">Principal</span>}
                 </div>
               ))}
             </div>

@@ -4,12 +4,16 @@ import { Button } from '../../shared/Button/Button';
 import { useNavigate } from 'react-router-dom';
 import '../Login/Login.css'; // Reusing the login layout styling
 
+import api from '../../services/api';
+import { toast } from 'sonner';
+
 export default function Register() {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, '');
@@ -26,15 +30,31 @@ export default function Register() {
     setPhone(formatted);
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      alert("As senhas não coincidem!");
+      toast.error("As senhas não coincidem!");
       return;
     }
-    console.log('Cadastro com:', { name, phone, password });
-    alert("Cadastro realizado com sucesso!");
-    navigate('/');
+
+    try {
+      setLoading(true);
+      const response = await api.post('/auth/register', {
+        name,
+        phone,
+        password
+      });
+      
+      localStorage.setItem('@PizzariaMia:token', response.data.token);
+      localStorage.setItem('@PizzariaMia:user', JSON.stringify(response.data));
+      
+      toast.success("Cadastro realizado com sucesso!");
+      navigate('/cardapio');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Erro ao realizar cadastro.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

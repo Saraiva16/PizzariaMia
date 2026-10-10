@@ -16,13 +16,14 @@ namespace PizzariaMia.Models
         
         public OrderStatus Status { get; set; } = OrderStatus.Pending;
         public PaymentMethod PaymentMethod { get; set; }
-        public string? DeliveryAddress { get; set; }
+        public int? AddressId { get; set; }
         
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation properties
         public User? User { get; set; }
+        public Address? Address { get; set; }
         public ICollection<OrderItem> Items { get; set; } = new List<OrderItem>();
     }
 }
