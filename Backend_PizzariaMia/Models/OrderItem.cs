@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using PizzariaMia.Models.Enums;
 
 namespace PizzariaMia.Models
 {
@@ -17,8 +18,12 @@ namespace PizzariaMia.Models
         
         public string? Notes { get; set; }
 
+        public CrustType Crust { get; set; } = CrustType.None;
+
         // Navigation properties
         public Order? Order { get; set; }
         public Pizza? Pizza { get; set; }
+        public ICollection<Ingredient> AddedIngredients { get; set; } = new List<Ingredient>();
+        public ICollection<Ingredient> RemovedIngredients { get; set; } = new List<Ingredient>();
     }
 }
