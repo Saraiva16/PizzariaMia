@@ -22,6 +22,36 @@ namespace PizzariaMia.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("IngredientOrderItem", b =>
+                {
+                    b.Property<int>("AddedIngredientsId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OrderItemId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("AddedIngredientsId", "OrderItemId");
+
+                    b.HasIndex("OrderItemId");
+
+                    b.ToTable("OrderItemAddedIngredients", (string)null);
+                });
+
+            modelBuilder.Entity("IngredientOrderItem1", b =>
+                {
+                    b.Property<int>("OrderItem1Id")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RemovedIngredientsId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("OrderItem1Id", "RemovedIngredientsId");
+
+                    b.HasIndex("RemovedIngredientsId");
+
+                    b.ToTable("OrderItemRemovedIngredients", (string)null);
+                });
+
             modelBuilder.Entity("PizzariaMia.Models.Address", b =>
                 {
                     b.Property<int>("Id")
@@ -108,6 +138,31 @@ namespace PizzariaMia.Migrations
                     b.HasIndex("PizzaId");
 
                     b.ToTable("CartItems");
+                });
+
+            modelBuilder.Entity("PizzariaMia.Models.Ingredient", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("AdditionalPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("PizzaId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PizzaId");
+
+                    b.ToTable("Ingredient");
                 });
 
             modelBuilder.Entity("PizzariaMia.Models.Order", b =>
@@ -240,6 +295,10 @@ namespace PizzariaMia.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -259,6 +318,36 @@ namespace PizzariaMia.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("IngredientOrderItem", b =>
+                {
+                    b.HasOne("PizzariaMia.Models.Ingredient", null)
+                        .WithMany()
+                        .HasForeignKey("AddedIngredientsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PizzariaMia.Models.OrderItem", null)
+                        .WithMany()
+                        .HasForeignKey("OrderItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("IngredientOrderItem1", b =>
+                {
+                    b.HasOne("PizzariaMia.Models.OrderItem", null)
+                        .WithMany()
+                        .HasForeignKey("OrderItem1Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PizzariaMia.Models.Ingredient", null)
+                        .WithMany()
+                        .HasForeignKey("RemovedIngredientsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("PizzariaMia.Models.Address", b =>
@@ -298,6 +387,13 @@ namespace PizzariaMia.Migrations
                     b.Navigation("Cart");
 
                     b.Navigation("Pizza");
+                });
+
+            modelBuilder.Entity("PizzariaMia.Models.Ingredient", b =>
+                {
+                    b.HasOne("PizzariaMia.Models.Pizza", null)
+                        .WithMany("Ingredients")
+                        .HasForeignKey("PizzaId");
                 });
 
             modelBuilder.Entity("PizzariaMia.Models.Order", b =>
@@ -342,6 +438,11 @@ namespace PizzariaMia.Migrations
             modelBuilder.Entity("PizzariaMia.Models.Order", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("PizzariaMia.Models.Pizza", b =>
+                {
+                    b.Navigation("Ingredients");
                 });
 
             modelBuilder.Entity("PizzariaMia.Models.User", b =>
