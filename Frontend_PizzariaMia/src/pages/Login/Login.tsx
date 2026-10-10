@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { Input } from '../../shared/Input/Input';
 import { Button } from '../../shared/Button/Button';
 import { useNavigate } from 'react-router-dom';
@@ -5,12 +6,39 @@ import './Login.css';
 
 export default function Login() {
   const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Logic for login
-    console.log('Login action');
-    navigate('/cardapio');
+    try {
+      const response = await fetch('http://localhost:5210/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          // Se estiver vazio, usa os dados de teste para facilitar o dev
+          phoneOrEmail: email || 'admin@admin.com',
+          password: password || 'admin123'
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+
+        if (data.user.role === 'Admin') {
+          navigate('/employee/menu');
+        } else {
+          navigate('/cardapio');
+        }
+      } else {
+        alert('Credenciais inválidas. Tente novamente.');
+      }
+    } catch (error) {
+      console.error('Erro no login', error);
+      alert('Erro de conexão com o servidor. O backend está rodando?');
+    }
   };
 
   return (
@@ -19,13 +47,17 @@ export default function Login() {
         <h2 className="login-title">Bem-vindo</h2>
         
         <Input 
-          type="tel" 
-          placeholder="TELEFONE"
+          type="text" 
+          placeholder="EMAIL OU TELEFONE"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
         />
 
         <Input 
           type="password" 
           placeholder="SENHA"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
         />
 
         <Button type="submit" variant="icon" aria-label="Entrar">

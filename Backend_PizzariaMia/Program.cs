@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using PizzariaMia.Data;
 using PizzariaMia.Repositories;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,6 +41,27 @@ builder.Services.AddStackExchangeRedisCache(options =>
 builder.Services.AddHttpClient<PizzariaMia.Services.IEvolutionApiService, PizzariaMia.Services.EvolutionApiService>();
 builder.Services.AddScoped<PizzariaMia.Services.IBotStateService, PizzariaMia.Services.BotStateService>();
 
+// Configure JWT Authentication
+var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new ArgumentNullException("Jwt:Key is missing in configuration.");
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+    };
+});
+
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -60,8 +84,26 @@ app.UseStaticFiles();
 // Habilitar CORS antes do Authorization
 app.UseCors("FrontendPolicy");
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Seed Admin User for Testing
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    if (!context.Users.Any(u => u.Email == "admin@admin.com"))
+    {
+        context.Users.Add(new PizzariaMia.Models.User
+        {
+            Name = "Atendente Admin",
+            Email = "admin@admin.com",
+            PasswordHash = "admin123", // Lembrar que o AuthController valida diretamente a string no momento
+            Role = "Admin"
+        });
+        context.SaveChanges();
+    }
+}
 
 app.Run();
