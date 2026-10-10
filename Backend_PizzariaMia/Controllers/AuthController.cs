@@ -1,85 +1,94 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
-using PizzariaMia.Data;
 using PizzariaMia.DTOs;
 using PizzariaMia.Models;
+using PizzariaMia.Repositories;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.EntityFrameworkCore;
+using BCrypt.Net;
 
 namespace PizzariaMia.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IUserRepository _userRepository;
         private readonly IConfiguration _configuration;
 
-        public AuthController(AppDbContext context, IConfiguration configuration)
+        public AuthController(IUserRepository userRepository, IConfiguration configuration)
         {
-            _context = context;
+            _userRepository = userRepository;
             _configuration = configuration;
         }
 
-        [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterDto model)
         {
-            // Procura o usuário pelo Email ou Telefone (assumindo que possam digitar telefone no lugar do email para simplificar)
-            // No momento, o modelo User tem apenas Email, mas vamos considerar que o Email guarde o telefone ou o email real.
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Email == loginDto.PhoneOrEmail);
+            var existingUser = await _userRepository.GetByPhoneAsync(model.Phone);
+            if (existingUser != null)
+                return BadRequest(new { error = "Telefone já cadastrado." });
 
-            if (user == null || !VerifyPassword(loginDto.Password, user.PasswordHash))
+            var user = new User
             {
-                return Unauthorized(new { message = "Credenciais inválidas" });
-            }
-
-            var token = GenerateJwtToken(user);
-
-            return Ok(new
-            {
-                token = token,
-                user = new
-                {
-                    id = user.Id,
-                    name = user.Name,
-                    email = user.Email,
-                    role = user.Role
-                }
-            });
-        }
-
-        private bool VerifyPassword(string inputPassword, string storedHash)
-        {
-            // TODO: Na implementação final, deve-se usar BCrypt ou similar para validar o hash.
-            // Para simplificar a POC e integração, vamos assumir que o hash é apenas a string limpa se ainda não houver hashing.
-            // Num sistema real: return BCrypt.Net.BCrypt.Verify(inputPassword, storedHash);
-            return inputPassword == storedHash;
-        }
-
-        private string GenerateJwtToken(User user)
-        {
-            var jwtKey = _configuration["Jwt:Key"] ?? throw new ArgumentNullException("Jwt:Key is missing");
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-            var claims = new[]
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim(ClaimTypes.Name, user.Name),
-                new Claim(ClaimTypes.Role, user.Role), // Importante para o frontend saber se é Customer ou Admin
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                Name = model.Name,
+                Phone = model.Phone,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password)
             };
 
+            await _userRepository.AddAsync(user);
+
+            var token = GenerateJwtToken(user);
+            return Ok(new AuthResponseDto { Token = token, Name = user.Name, Phone = user.Phone });
+        }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginDto model)
+        {
+            var user = await _userRepository.GetByPhoneAsync(model.Phone);
+            if (user == null || !BCrypt.Net.BCrypt.Verify(model.Password, user.PasswordHash))
+                return Unauthorized(new { error = "Credenciais inválidas." });
+
+            var token = GenerateJwtToken(user);
+            return Ok(new AuthResponseDto { Token = token, Name = user.Name, Phone = user.Phone });
+        }
+        [HttpGet("me")]
+        [Authorize]
+        public async Task<IActionResult> GetMe()
+        {
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdStr, out int userId))
+                return Unauthorized();
+
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null)
+                return NotFound();
+
+            return Ok(new { name = user.Name, phone = user.Phone });
+        }
+        private string GenerateJwtToken(User user)
+        {
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Name),
+                new Claim(ClaimTypes.MobilePhone, user.Phone),
+                new Claim(ClaimTypes.Role, user.Role)
+            };
+
+            var jwtSettings = _configuration.GetSection("Jwt");
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]!));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
             var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
+                issuer: jwtSettings["Issuer"],
+                audience: jwtSettings["Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddHours(2),
-                signingCredentials: credentials);
+                expires: DateTime.UtcNow.AddDays(7),
+                signingCredentials: creds
+            );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }

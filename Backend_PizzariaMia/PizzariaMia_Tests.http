@@ -1,0 +1,76 @@
+@host = http://localhost:5210
+@phone = 11999999999
+@password = 123456
+
+### ==============================================================
+### TESTES DO NOVO FLUXO DE PEDIDO E SIGNALR
+### ==============================================================
+
+### 1. Registrar um novo usuário
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Cliente Teste",
+  "phone": "{{phone}}",
+  "password": "{{password}}"
+}
+
+### 2. Login (Para pegar o Token)
+# @name login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "phone": "{{phone}}",
+  "password": "{{password}}"
+}
+
+### Extrai o token da resposta acima
+@token = {{login.response.body.token}}
+
+### 3. Fazer um Pedido
+# @name createOrder
+POST {{host}}/api/orders
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "AddressId": 1,
+  "PaymentMethod": 3,
+  "Items": [
+    {
+      "PizzaId": 1,
+      "Quantity": 1,
+      "Customization": "{\"border\":\"Catupiry\",\"notes\":\"Sem cebola\"}"
+    }
+  ]
+}
+
+### Pega o ID do Pedido gerado
+@orderId = {{createOrder.response.body.id}}
+
+
+### 4. Simular Ação da Cozinha (Mudar o Status do Pedido para disparar WebSockets)
+# DICA: Abra o Front-End em http://localhost:5173/pedidos/{{orderId}}/acompanhar
+# Deixe a aba aberta e rode esse PUT abaixo. A tela vai atualizar SOZINHA!
+
+PUT {{host}}/api/orders/{{orderId}}/status
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+"Preparing"
+
+### 5. Mudar para Indo até você
+PUT {{host}}/api/orders/{{orderId}}/status
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+"OutForDelivery"
+
+### 6. Entregue
+PUT {{host}}/api/orders/{{orderId}}/status
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+"Delivered"

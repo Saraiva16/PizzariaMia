@@ -10,9 +10,9 @@ namespace PizzariaMia.Repositories
         {
         }
 
-        public async Task<User?> GetByEmailAsync(string email)
+        public async Task<User?> GetByPhoneAsync(string phone)
         {
-            return await _dbSet.FirstOrDefaultAsync(u => u.Email == email);
+            return await _dbSet.FirstOrDefaultAsync(u => u.Phone == phone);
         }
     }
 }

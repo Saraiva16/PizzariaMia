@@ -29,28 +29,28 @@
 
 /* Variant: text */
 .custom-button.variant-text {
-  color: var(--text);
+  color: var(--color-text);
   font-size: 14px;
   font-weight: 500;
   padding: 8px;
 }
 
 .custom-button.variant-text:hover {
-  color: var(--accent);
+  color: var(--color-primary);
 }
 
 /* Variant: primary (standard button) */
 .custom-button.variant-primary {
-  background: var(--accent);
+  background: var(--color-primary);
   color: white;
   padding: 12px 24px;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 500;
-  box-shadow: 0 4px 14px 0 var(--accent-border);
+  box-shadow: 0 4px 14px 0 rgba(237, 42, 52, 0.4);
 }
 
 .custom-button.variant-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(170, 59, 255, 0.4);
+  box-shadow: 0 6px 20px rgba(237, 42, 52, 0.6);
 }

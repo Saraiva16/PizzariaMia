@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
 export interface CartItem {
   id: string; // unique id for the cart item (since same pizza can be added with different customizations)
@@ -7,7 +7,10 @@ export interface CartItem {
   price: number;
   imageUrl: string;
   slices?: number;
-  customization?: string;
+  customization?: {
+    border: string;
+    notes: string;
+  };
   quantity: number;
 }
 
@@ -15,6 +18,7 @@ interface CartContextData {
   cartItems: CartItem[];
   addToCart: (item: Omit<CartItem, 'id' | 'quantity'>) => void;
   removeFromCart: (id: string) => void;
+  updateCartItem: (id: string, updates: Partial<CartItem>) => void;
   clearCart: () => void;
   totalItems: number;
   subtotal: number;
@@ -52,6 +56,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setCartItems((prevItems) => prevItems.filter(item => item.id !== id));
   };
 
+  const updateCartItem = (id: string, updates: Partial<CartItem>) => {
+    setCartItems((prevItems) => 
+      prevItems.map(item => item.id === id ? { ...item, ...updates } : item)
+    );
+  };
+
   const clearCart = () => {
     setCartItems([]);
     localStorage.removeItem('@PizzariaMia:cart');
@@ -66,6 +76,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         cartItems,
         addToCart,
         removeFromCart,
+        updateCartItem,
         clearCart,
         totalItems,
         subtotal

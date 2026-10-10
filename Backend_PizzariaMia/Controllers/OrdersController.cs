@@ -1,93 +1,178 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using PizzariaMia.Data;
 using PizzariaMia.DTOs;
 using PizzariaMia.Models;
+using PizzariaMia.Models.Enums;
+using PizzariaMia.Repositories;
+using System.Security.Claims;
+
+using Microsoft.AspNetCore.SignalR;
+using PizzariaMia.Hubs;
+using Microsoft.EntityFrameworkCore;
 
 namespace PizzariaMia.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/[controller]")]
+    [Authorize] // Requires JWT
     public class OrdersController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IOrderRepository _orderRepository;
+        private readonly IPizzaRepository _pizzaRepository;
+        private readonly IHubContext<OrderTrackingHub> _hubContext;
+        private readonly PizzariaMia.Data.AppDbContext _context;
 
-        public OrdersController(AppDbContext context)
+        public OrdersController(IOrderRepository orderRepository, IPizzaRepository pizzaRepository, IHubContext<OrderTrackingHub> hubContext, PizzariaMia.Data.AppDbContext context)
         {
+            _orderRepository = orderRepository;
+            _pizzaRepository = pizzaRepository;
+            _hubContext = hubContext;
             _context = context;
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateOrder([FromBody] CreateOrderDto dto)
+        public async Task<IActionResult> CreateOrder([FromBody] CheckoutDto model)
         {
-            var order = new Order
-            {
-                UserId = dto.UserId,
-                PaymentMethod = dto.PaymentMethod,
-                DeliveryAddress = dto.DeliveryAddress,
-                Status = PizzariaMia.Models.Enums.OrderStatus.Pending,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdStr, out int userId))
+                return Unauthorized();
 
-            decimal totalAmount = 0;
+            if (model.Items == null || !model.Items.Any())
+                return BadRequest(new { error = "O carrinho está vazio." });
 
-            foreach (var itemDto in dto.Items)
+            decimal totalAmount = 12.00m; // Default delivery fee
+            var orderItems = new List<OrderItem>();
+
+            foreach (var item in model.Items)
             {
-                var pizza = await _context.Pizzas.FindAsync(itemDto.PizzaId);
+                var pizza = await _pizzaRepository.GetByIdAsync(item.PizzaId);
                 if (pizza == null)
-                    return BadRequest($"Pizza com ID {itemDto.PizzaId} não encontrada.");
+                    return BadRequest(new { error = $"Pizza com ID {item.PizzaId} não encontrada." });
 
-                var orderItem = new OrderItem
+                var itemTotal = pizza.Price * item.Quantity;
+                totalAmount += itemTotal;
+
+                orderItems.Add(new OrderItem
                 {
-                    PizzaId = itemDto.PizzaId,
-                    Quantity = itemDto.Quantity,
-                    Crust = itemDto.Crust,
-                    Notes = itemDto.Notes,
-                    UnitPrice = pizza.Price
-                };
-
-                // Calcular acréscimos dos ingredientes adicionados
-                decimal additionsPrice = 0;
-                if (itemDto.AddedIngredients != null)
-                {
-                    foreach (var ingredientId in itemDto.AddedIngredients)
-                    {
-                        var ingredient = await _context.Ingredients.FindAsync(ingredientId);
-                        if (ingredient != null)
-                        {
-                            orderItem.AddedIngredients.Add(ingredient);
-                            additionsPrice += ingredient.AdditionalPrice;
-                        }
-                    }
-                }
-
-                // Processar ingredientes removidos (não altera preço normalmente)
-                if (itemDto.RemovedIngredients != null)
-                {
-                    foreach (var ingredientId in itemDto.RemovedIngredients)
-                    {
-                        var ingredient = await _context.Ingredients.FindAsync(ingredientId);
-                        if (ingredient != null)
-                        {
-                            orderItem.RemovedIngredients.Add(ingredient);
-                        }
-                    }
-                }
-
-                // Calcula o SubTotal (Preço da pizza + Adicionais) * Quantidade
-                orderItem.SubTotal = (pizza.Price + additionsPrice) * itemDto.Quantity;
-                totalAmount += orderItem.SubTotal;
-
-                order.Items.Add(orderItem);
+                    PizzaId = pizza.Id,
+                    Quantity = item.Quantity,
+                    UnitPrice = pizza.Price,
+                    SubTotal = itemTotal,
+                    Notes = item.Customization
+                });
             }
 
-            order.TotalAmount = totalAmount;
+            var address = await _context.Addresses.FirstOrDefaultAsync(a => a.Id == model.AddressId && a.UserId == userId);
+            if (address == null)
+            {
+                return BadRequest(new { error = "Endereço de entrega inválido ou não encontrado." });
+            }
 
-            _context.Orders.Add(order);
-            await _context.SaveChangesAsync();
+            var order = new Order
+            {
+                UserId = userId,
+                AddressId = model.AddressId,
+                PaymentMethod = model.PaymentMethod,
+                TotalAmount = totalAmount,
+                Status = OrderStatus.Pending,
+                Items = orderItems
+            };
 
-            return Ok(new { Message = "Pedido criado com sucesso", OrderId = order.Id, TotalAmount = order.TotalAmount });
+            await _orderRepository.AddAsync(order);
+
+            // Phase 4: Trigger a SignalR event to the kitchen (or just track immediately)
+            await _hubContext.Clients.Group($"Order_{order.Id}").SendAsync("StatusChanged", order.Status.ToString());
+
+            return Ok(new OrderResponseDto
+            {
+                Id = order.Id,
+                TotalAmount = order.TotalAmount,
+                Status = order.Status.ToString(),
+                CreatedAt = order.CreatedAt
+            });
+        }
+
+        [HttpPut("{id}/status")]
+        // In a real app, only Admin/Kitchen roles can access this.
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] string newStatusStr)
+        {
+            if (!Enum.TryParse(newStatusStr, out OrderStatus newStatus))
+                return BadRequest("Status inválido.");
+
+            var order = await _orderRepository.GetByIdAsync(id);
+            if (order == null)
+                return NotFound();
+
+            order.Status = newStatus;
+            order.UpdatedAt = DateTime.UtcNow;
+            await _orderRepository.UpdateAsync(order);
+
+            // Dispara WebSockets em tempo real para o front-end
+            await _hubContext.Clients.Group($"Order_{order.Id}").SendAsync("StatusChanged", order.Status.ToString());
+
+            return Ok(new { message = "Status atualizado", status = order.Status.ToString() });
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetOrder(int id)
+        {
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdStr, out int userId))
+                return Unauthorized();
+
+            // Usando o contexto para carregar navegações (Items.Pizza e Address)
+            var order = await _context.Orders
+                .Include(o => o.Items)
+                    .ThenInclude(i => i.Pizza)
+                .Include(o => o.Address)
+                .FirstOrDefaultAsync(o => o.Id == id && o.UserId == userId);
+
+            if (order == null)
+                return NotFound();
+
+            var items = order.Items.Select(i => new
+            {
+                quantity = i.Quantity,
+                pizzaName = i.Pizza.Name,
+                notes = i.Notes
+            }).ToList();
+
+            var addressLabel = order.Address != null 
+                ? new { label = order.Address.Label, street = order.Address.StreetAndNumber } 
+                : null;
+
+            return Ok(new
+            {
+                id = order.Id,
+                status = order.Status.ToString(),
+                createdAt = order.CreatedAt,
+                updatedAt = order.UpdatedAt,
+                total = order.TotalAmount,
+                address = addressLabel,
+                items = items
+            });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetMyOrders()
+        {
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdStr, out int userId))
+                return Unauthorized();
+
+            // Typically we'd have a method in IOrderRepository: _orderRepository.GetOrdersByUserIdAsync(userId)
+            // But since IRepository has GetAllAsync, we'll do a simple filter.
+            var allOrders = await _orderRepository.GetAllAsync();
+            var myOrders = allOrders.Where(o => o.UserId == userId).OrderByDescending(o => o.CreatedAt)
+                .Select(o => new OrderResponseDto
+                {
+                    Id = o.Id,
+                    TotalAmount = o.TotalAmount,
+                    Status = o.Status.ToString(),
+                    CreatedAt = o.CreatedAt
+                }).ToList();
+
+            return Ok(myOrders);
         }
     }
 }
