@@ -35,6 +35,11 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
   const [searched, setSearched] = useState(false);
   const [foundClients, setFoundClients] = useState<ClientData[]>([]);
 
+  // Estados para o pré-cadastro rápido
+  const [newName, setNewName] = useState('');
+  const [newAddress, setNewAddress] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
+
   if (!isOpen) return null;
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,12 +76,37 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
       if (response.data && response.data.length > 0) {
         toast.success(`Cliente encontrado: ${response.data[0].name}`);
       } else {
-        toast.info('Nenhum cadastro encontrado para este número.');
+        toast.info('Nenhum cadastro encontrado. Preencha o pré-cadastro abaixo.');
       }
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erro ao consultar cliente no sistema.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleQuickRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim()) {
+      toast.error('Por favor, informe o nome do cliente.');
+      return;
+    }
+
+    try {
+      setIsRegistering(true);
+      const response = await api.post<ClientData>('/users/quick-register', {
+        name: newName.trim(),
+        phone,
+        address: newAddress.trim() || undefined
+      });
+
+      toast.success(`Cliente ${response.data.name} cadastrado com sucesso!`);
+      onSelectClient(response.data);
+      handleClose();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erro ao realizar pré-cadastro.');
+    } finally {
+      setIsRegistering(false);
     }
   };
 
@@ -87,6 +117,8 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
 
   const handleClose = () => {
     setPhone('');
+    setNewName('');
+    setNewAddress('');
     setSearched(false);
     setFoundClients([]);
     onClose();
@@ -102,27 +134,29 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
           </button>
         </div>
 
-        <form className="new-order-form" onSubmit={handleSearch}>
-          <label className="new-order-label">Telefone do Cliente</label>
-          <div className="new-order-input-row">
-            <input
-              type="tel"
-              className="new-order-input"
-              placeholder="(00) 00000-0000"
-              value={phone}
-              onChange={handlePhoneChange}
-              autoFocus
-              required
-            />
-            <button
-              type="submit"
-              className="new-order-search-btn"
-              disabled={loading}
-            >
-              {loading ? 'Buscando...' : 'Buscar'}
-            </button>
-          </div>
-        </form>
+        {!searched || foundClients.length > 0 ? (
+          <form className="new-order-form" onSubmit={handleSearch}>
+            <label className="new-order-label">Telefone do Cliente</label>
+            <div className="new-order-input-row">
+              <input
+                type="tel"
+                className="new-order-input"
+                placeholder="(00) 00000-0000"
+                value={phone}
+                onChange={handlePhoneChange}
+                autoFocus
+                required
+              />
+              <button
+                type="submit"
+                className="new-order-search-btn"
+                disabled={loading}
+              >
+                {loading ? 'Buscando...' : 'Buscar'}
+              </button>
+            </div>
+          </form>
+        ) : null}
 
         {searched && foundClients.length > 0 && (
           <div className="new-order-client-card">
@@ -155,10 +189,57 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
         )}
 
         {searched && foundClients.length === 0 && (
-          <div className="new-order-not-found">
-            <p style={{ margin: 0 }}>
-              <strong>Atenção:</strong> Não encontramos nenhum cliente com o telefone informado.
-            </p>
+          <div className="new-order-quick-register">
+            <div className="new-order-quick-register-header">
+              <h3>Cliente Não Encontrado</h3>
+              <p>Preencha os dados abaixo para o pré-cadastro e siga com o pedido:</p>
+            </div>
+
+            <form onSubmit={handleQuickRegister} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div className="new-order-field">
+                <label>Telefone</label>
+                <input type="text" value={phone} disabled />
+              </div>
+
+              <div className="new-order-field">
+                <label>Nome do Cliente *</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Maria da Silva"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  autoFocus
+                  required
+                />
+              </div>
+
+              <div className="new-order-field">
+                <label>Endereço de Entrega</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Rua das Flores, 123 - Centro"
+                  value={newAddress}
+                  onChange={(e) => setNewAddress(e.target.value)}
+                />
+              </div>
+
+              <div className="new-order-actions-row">
+                <button
+                  type="button"
+                  className="new-order-back-btn"
+                  onClick={() => setSearched(false)}
+                >
+                  Voltar
+                </button>
+                <button
+                  type="submit"
+                  className="new-order-submit-register-btn"
+                  disabled={isRegistering}
+                >
+                  {isRegistering ? 'Cadastrando...' : 'Cadastrar e Iniciar Pedido'}
+                </button>
+              </div>
+            </form>
           </div>
         )}
       </div>

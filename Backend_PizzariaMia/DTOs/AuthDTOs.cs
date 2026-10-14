@@ -30,4 +30,15 @@ namespace PizzariaMia.DTOs
         public string Phone { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
     }
+
+    public class QuickRegisterCustomerDto
+    {
+        [Required(ErrorMessage = "O nome é obrigatório.")]
+        public string Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "O telefone é obrigatório.")]
+        public string Phone { get; set; } = string.Empty;
+
+        public string? Address { get; set; }
+    }
 }
