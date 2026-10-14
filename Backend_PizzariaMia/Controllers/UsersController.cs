@@ -8,7 +8,7 @@ namespace PizzariaMia.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")] // Apenas atendentes podem buscar clientes
+    [Authorize(Roles = "Admin,Employee")] // Atendentes e Admins podem buscar clientes
     public class UsersController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -24,18 +24,33 @@ namespace PizzariaMia.Controllers
         {
             if (string.IsNullOrWhiteSpace(query))
             {
-                return BadRequest("Query is required.");
+                return BadRequest(new { error = "O parâmetro de busca é obrigatório." });
             }
 
+            var cleanDigits = new string(query.Where(char.IsDigit).ToArray());
+            var trimmedQuery = query.Trim().ToLower();
+
             var users = await _context.Users
-                .Where(u => u.Role == "Customer" && 
-                            (u.Name.ToLower().Contains(query.ToLower()) || u.Email.Contains(query)))
+                .Include(u => u.Addresses)
+                .Where(u => u.Role == "Customer" &&
+                            (u.Phone.Contains(query) ||
+                             (cleanDigits.Length > 0 && u.Phone.Contains(cleanDigits)) ||
+                             u.Name.ToLower().Contains(trimmedQuery) ||
+                             u.Email.ToLower().Contains(trimmedQuery)))
                 .Select(u => new
                 {
                     u.Id,
                     u.Name,
-                    u.Email, // Usado como telefone provisoriamente
-                    u.Role
+                    u.Phone,
+                    u.Email,
+                    u.Role,
+                    Addresses = u.Addresses.Select(a => new
+                    {
+                        a.Id,
+                        a.Label,
+                        a.StreetAndNumber,
+                        a.IsMain
+                    })
                 })
                 .ToListAsync();
 

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../../services/api';
+import { toast } from 'sonner';
 import './EmployeeCheckout.css';
 
 interface Ingredient {
@@ -18,7 +20,8 @@ interface OrderItem {
 interface Client {
   id: number;
   name: string;
-  email: string; // Utilizado como telefone na simulação
+  email: string;
+  phone?: string;
 }
 
 export default function EmployeeCheckout() {
@@ -31,40 +34,42 @@ export default function EmployeeCheckout() {
   useEffect(() => {
     const items = localStorage.getItem('employeeOrderItems');
     if (items) {
-      setOrderItems(JSON.parse(items));
+      try {
+        setOrderItems(JSON.parse(items));
+      } catch {
+        navigate('/funcionario/cardapio');
+      }
     } else {
-      navigate('/employee/menu');
+      navigate('/funcionario/cardapio');
+    }
+
+    const savedClient = localStorage.getItem('employeeSelectedClient');
+    if (savedClient) {
+      try {
+        setSelectedClient(JSON.parse(savedClient));
+      } catch {
+        // ignore
+      }
     }
   }, [navigate]);
 
   const handleSearchClient = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchQuery) return;
+    if (!searchQuery.trim()) return;
     setIsSearching(true);
     
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5210/api/users/search?query=${searchQuery}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.get<Client[]>(`/users/search?query=${encodeURIComponent(searchQuery.trim())}`);
       
-      if (response.ok) {
-        const users = await response.json();
-        if (users && users.length > 0) {
-          // Simplificação: pega o primeiro
-          setSelectedClient(users[0]);
-        } else {
-          alert('Cliente não encontrado.');
-          setSelectedClient(null);
-        }
+      if (response.data && response.data.length > 0) {
+        setSelectedClient(response.data[0]);
+        toast.success(`Cliente ${response.data[0].name} selecionado.`);
       } else {
-        alert('Erro ao buscar cliente.');
+        toast.error('Cliente não encontrado.');
+        setSelectedClient(null);
       }
-    } catch (error) {
-      console.error(error);
-      alert('Erro de conexão.');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erro ao buscar cliente.');
     } finally {
       setIsSearching(false);
     }
@@ -72,13 +77,11 @@ export default function EmployeeCheckout() {
 
   const handleConfirmOrder = async () => {
     if (!selectedClient) {
-      alert('Selecione um cliente antes de finalizar.');
+      toast.error('Selecione um cliente antes de finalizar.');
       return;
     }
 
     try {
-      const token = localStorage.getItem('token');
-      // Payload simplificado mapeando para o DTO que fizemos merge
       const payload = {
         userId: selectedClient.id,
         items: orderItems.map(item => ({
@@ -91,25 +94,13 @@ export default function EmployeeCheckout() {
         }))
       };
 
-      const response = await fetch('http://localhost:5210/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
+      await api.post('/orders', payload);
 
-      if (response.ok) {
-        alert('Pedido finalizado com sucesso!');
-        localStorage.removeItem('employeeOrderItems');
-        navigate('/employee/menu');
-      } else {
-        alert('Erro ao finalizar pedido.');
-      }
-    } catch (error) {
-      console.error(error);
-      alert('Erro de conexão ao finalizar pedido.');
+      toast.success('Pedido finalizado com sucesso!');
+      localStorage.removeItem('employeeOrderItems');
+      navigate('/funcionario/cardapio');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erro ao finalizar pedido.');
     }
   };
 

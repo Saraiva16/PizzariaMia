@@ -41,7 +41,7 @@ namespace PizzariaMia.Controllers
             await _userRepository.AddAsync(user);
 
             var token = GenerateJwtToken(user);
-            return Ok(new AuthResponseDto { Token = token, Name = user.Name, Phone = user.Phone });
+            return Ok(new AuthResponseDto { Token = token, Name = user.Name, Phone = user.Phone, Role = user.Role });
         }
 
         [HttpPost("login")]
@@ -52,7 +52,7 @@ namespace PizzariaMia.Controllers
                 return Unauthorized(new { error = "Credenciais inválidas." });
 
             var token = GenerateJwtToken(user);
-            return Ok(new AuthResponseDto { Token = token, Name = user.Name, Phone = user.Phone });
+            return Ok(new AuthResponseDto { Token = token, Name = user.Name, Phone = user.Phone, Role = user.Role });
         }
         [HttpGet("me")]
         [Authorize]
@@ -66,7 +66,7 @@ namespace PizzariaMia.Controllers
             if (user == null)
                 return NotFound();
 
-            return Ok(new { name = user.Name, phone = user.Phone });
+            return Ok(new { name = user.Name, phone = user.Phone, role = user.Role });
         }
         private string GenerateJwtToken(User user)
         {

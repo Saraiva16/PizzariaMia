@@ -95,21 +95,54 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<PizzariaMia.Hubs.OrderTrackingHub>("/orderTrackingHub"); // <--- Mapeamento do Hub
 
-// Seed Admin User for Testing
+// Seed Employee and Admin Users for Testing
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    if (!context.Users.Any(u => u.Email == "admin@admin.com"))
+
+    // Seed Funcionário (Employee)
+    var employeePhone = "(11) 98888-8888";
+    var existingEmployee = context.Users.FirstOrDefault(u => u.Phone == employeePhone || u.Email == "funcionario@pizzariamia.com");
+    if (existingEmployee == null)
     {
         context.Users.Add(new PizzariaMia.Models.User
         {
-            Name = "Atendente Admin",
+            Name = "Funcionário Mia",
+            Email = "funcionario@pizzariamia.com",
+            Phone = employeePhone,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("funcionario123"),
+            Role = "Employee"
+        });
+    }
+    else
+    {
+        existingEmployee.Phone = employeePhone;
+        existingEmployee.Role = "Employee";
+        existingEmployee.PasswordHash = BCrypt.Net.BCrypt.HashPassword("funcionario123");
+    }
+
+    // Seed Admin
+    var adminPhone = "(11) 99999-9999";
+    var existingAdmin = context.Users.FirstOrDefault(u => u.Phone == adminPhone || u.Email == "admin@admin.com");
+    if (existingAdmin == null)
+    {
+        context.Users.Add(new PizzariaMia.Models.User
+        {
+            Name = "Administrador Mia",
             Email = "admin@admin.com",
-            PasswordHash = "admin123", // Lembrar que o AuthController valida diretamente a string no momento
+            Phone = adminPhone,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
             Role = "Admin"
         });
-        context.SaveChanges();
     }
+    else
+    {
+        existingAdmin.Phone = adminPhone;
+        existingAdmin.Role = "Admin";
+        existingAdmin.PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123");
+    }
+
+    context.SaveChanges();
 }
 
 app.Run();
