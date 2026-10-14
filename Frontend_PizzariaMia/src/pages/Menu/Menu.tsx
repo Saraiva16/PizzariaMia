@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import PizzaCard from '../../shared/PizzaCard/PizzaCard';
 import PizzaModal from './components/PizzaModal/PizzaModal';
 import { useCart } from '../../contexts/CartContext';
+import { ThemeToggle } from '../../components/ThemeToggle/ThemeToggle';
 import './Menu.css';
 import './FloatingCart.css';
 
@@ -79,6 +80,7 @@ export default function MenuPage() {
           </div>
           
           <div className="header-actions">
+            <ThemeToggle />
             <button className="icon-btn" title="Meu Perfil" onClick={() => navigate('/perfil')}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>

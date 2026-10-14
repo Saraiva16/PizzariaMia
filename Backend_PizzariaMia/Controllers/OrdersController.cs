@@ -37,6 +37,16 @@ namespace PizzariaMia.Controllers
             if (!int.TryParse(userIdStr, out int userId))
                 return Unauthorized();
 
+            // Se for funcionário ou administrador e model.UserId for informado, vincula o pedido ao cliente
+            int targetUserId = userId;
+            var userRole = User.FindFirstValue(ClaimTypes.Role);
+            if ((userRole == "Employee" || userRole == "Admin") && model.UserId.HasValue && model.UserId.Value > 0)
+            {
+                targetUserId = model.UserId.Value;
+            }
+
+            var targetUser = await _context.Users.FindAsync(targetUserId);
+
             if (model.Items == null || !model.Items.Any())
                 return BadRequest(new { error = "O carrinho está vazio." });
 
@@ -62,16 +72,36 @@ namespace PizzariaMia.Controllers
                 });
             }
 
-            var address = await _context.Addresses.FirstOrDefaultAsync(a => a.Id == model.AddressId && a.UserId == userId);
-            if (address == null)
+            // Resolução do Endereço de Entrega
+            Address? address = null;
+            if (model.AddressId.HasValue && model.AddressId.Value > 0)
             {
-                return BadRequest(new { error = "Endereço de entrega inválido ou não encontrado." });
+                address = await _context.Addresses.FirstOrDefaultAsync(a => a.Id == model.AddressId && a.UserId == targetUserId);
+            }
+
+            if (address == null && !string.IsNullOrWhiteSpace(model.DeliveryAddress))
+            {
+                address = new Address
+                {
+                    UserId = targetUserId,
+                    Label = "Entrega Pedido Atendimento",
+                    StreetAndNumber = model.DeliveryAddress.Trim(),
+                    IsMain = true
+                };
+                _context.Addresses.Add(address);
+                await _context.SaveChangesAsync();
+            }
+            else if (address == null)
+            {
+                address = await _context.Addresses.FirstOrDefaultAsync(a => a.UserId == targetUserId);
             }
 
             var order = new Order
             {
-                UserId = userId,
-                AddressId = model.AddressId,
+                UserId = targetUserId,
+                CustomerName = targetUser?.Name,
+                CustomerPhone = targetUser?.Phone,
+                AddressId = address?.Id,
                 PaymentMethod = model.PaymentMethod,
                 TotalAmount = totalAmount,
                 Status = OrderStatus.Pending,

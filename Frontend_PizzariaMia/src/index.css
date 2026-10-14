@@ -1,9 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
+  /* Cores Modo Claro */
   --color-text: #190203;
+  --color-text-muted: #64748b;
   --color-background: #feedef;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f8fafc;
+  --color-surface-elevated: #ffffff;
+  --color-border: #e2e8f0;
+  --color-border-subtle: #f1f5f9;
+  
   --color-primary: #ed2a34;
+  --color-primary-hover: #d32029;
   --color-secondary: #f4c679;
   --color-accent: #f0d948;
   
@@ -18,6 +27,31 @@
   --radius-xl: 1rem;
   --radius-2xl: 1.5rem;
   --radius-full: 9999px;
+  
+  --transition-theme: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
+/* Modo Escuro - Inversão Harmônica com Tons Quentes de Forno à Lenha */
+[data-theme="dark"],
+html.dark {
+  --color-text: #fdf2f4;
+  --color-text-muted: #b5a4a7;
+  --color-background: #110d0f;
+  --color-surface: #1b1517;
+  --color-surface-hover: #261e21;
+  --color-surface-elevated: #221b1e;
+  --color-border: #36292d;
+  --color-border-subtle: #291f22;
+  
+  --color-primary: #ff4d57;
+  --color-primary-hover: #ff6870;
+  --color-secondary: #f6cb85;
+  --color-accent: #fcd95b;
+  
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 8px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 20px -3px rgba(0, 0, 0, 0.5), 0 4px 8px -2px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 30px -5px rgba(0, 0, 0, 0.6), 0 10px 15px -5px rgba(0, 0, 0, 0.4);
 }
 
 * {
@@ -34,11 +68,13 @@ body {
   display: flex;
   flex-direction: column;
   -webkit-font-smoothing: antialiased;
+  transition: var(--transition-theme);
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   color: var(--color-text);
+  transition: color 0.2s ease;
 }
 
 a {
@@ -53,5 +89,24 @@ button {
 
 ::selection {
   background-color: var(--color-secondary);
-  color: var(--color-text);
+  color: #190203;
+}
+
+/* Scrollbar estilizada harmoniosa */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
 }

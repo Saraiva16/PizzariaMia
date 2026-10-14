@@ -187,6 +187,147 @@
   background: #e2e8f0;
 }
 
+/* Seção Mais Pedidas */
+.popular-pizzas-section {
+  background: #ffffff;
+  border: 1px solid #fed7aa;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 6px rgba(251, 146, 60, 0.08);
+}
+
+.popular-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.popular-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #c2410c;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.popular-header span {
+  font-size: 0.8rem;
+  color: #9a3412;
+}
+
+.popular-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.popular-card {
+  background: #fffaf5;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  transition: all 0.15s ease;
+}
+
+.popular-card:hover {
+  border-color: #f97316;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.15);
+}
+
+.popular-card.selected {
+  border-color: #e53935;
+  background: #fff5f5;
+}
+
+.popular-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.popular-card-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #1e293b;
+}
+
+.popular-card-badge {
+  background: #ffedd5;
+  color: #c2410c;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.popular-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.popular-card-price {
+  font-weight: 700;
+  color: #e53935;
+  font-size: 0.95rem;
+}
+
+.popular-add-btn {
+  background: #e53935;
+  color: #ffffff;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.popular-add-btn:hover {
+  background: #c62828;
+}
+
+.popular-qty-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.popular-qty-btn {
+  width: 26px;
+  height: 26px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  border-radius: 4px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+.popular-qty-val {
+  font-weight: 700;
+  font-size: 0.85rem;
+  min-width: 18px;
+  text-align: center;
+}
+
 .pizza-list {
   display: flex;
   flex-direction: column;
@@ -252,6 +393,88 @@
   border-top: 1px dashed #ccc;
 }
 
+/* Variações Múltiplas da mesma Pizza */
+.pizza-variations-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.pizza-variation-block {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pizza-variation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.variation-tag {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.variation-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.remove-variation-btn {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.remove-variation-btn:hover {
+  background: #fee2e2;
+}
+
+.add-variation-btn {
+  background: #ffffff;
+  border: 1px dashed #e53935;
+  color: #e53935;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  margin-top: 4px;
+}
+
+.add-variation-btn:hover {
+  background: #fff5f5;
+  border-color: #c62828;
+  color: #c62828;
+}
+
 .ingredient-groups {
   display: flex;
   gap: 20px;
@@ -293,3 +516,196 @@
 .checkout-btn:hover {
   background-color: #c62828;
 }
+
+/* =========================================
+   MODO ESCURO - EmployeeMenu.css
+   ========================================= */
+[data-theme="dark"] .employee-menu-container,
+.dark-theme .employee-menu-container {
+  background-color: var(--color-background, #110d0f);
+  color: var(--color-text, #fdf2f4);
+}
+
+[data-theme="dark"] .employee-menu-header h1 {
+  color: var(--color-text, #fdf2f4);
+}
+
+[data-theme="dark"] .employee-menu-header span {
+  color: var(--color-text-muted, #b5a4a7) !important;
+}
+
+/* Filtros em Modo Escuro */
+[data-theme="dark"] .employee-filters-section {
+  background: var(--color-surface, #1b1517);
+  border-color: var(--color-border, #36292d);
+}
+
+[data-theme="dark"] .filter-section-label {
+  color: #c4b5b8;
+}
+
+[data-theme="dark"] .alphabet-all-btn {
+  background: #281f22;
+  border-color: #403035;
+  color: #fdf2f4;
+}
+
+[data-theme="dark"] .alphabet-all-btn:hover {
+  background: #36292e;
+}
+
+[data-theme="dark"] .alphabet-all-btn.active {
+  background: #ff4d57;
+  color: #ffffff;
+  border-color: #ff4d57;
+}
+
+[data-theme="dark"] .alphabet-letter-btn {
+  background: #221a1d;
+  border-color: #382b2f;
+  color: #fdf2f4;
+}
+
+[data-theme="dark"] .alphabet-letter-btn:hover:not(:disabled) {
+  background: #36292e;
+  border-color: #ff4d57;
+}
+
+[data-theme="dark"] .alphabet-letter-btn.active {
+  background: #ff4d57;
+  color: #ffffff;
+  border-color: #ff4d57;
+}
+
+[data-theme="dark"] .alphabet-letter-btn:disabled {
+  background: #171214;
+  border-color: #261c1f;
+  color: #554448;
+}
+
+[data-theme="dark"] .category-filter-badge {
+  background: #261e21;
+  border-color: #3d2f33;
+  color: #d1c2c5;
+}
+
+[data-theme="dark"] .category-filter-badge:hover {
+  background: #34272c;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .category-filter-badge.active {
+  background: #ff4d57;
+  color: #ffffff;
+  border-color: #ff4d57;
+}
+
+/* Seção Mais Pedidas em Modo Escuro */
+[data-theme="dark"] .popular-pizzas-section {
+  background: #1f171a;
+  border-color: #38292e;
+}
+
+[data-theme="dark"] .popular-header h3 {
+  color: #fdf2f4;
+}
+
+[data-theme="dark"] .popular-header span {
+  color: #b5a4a7;
+}
+
+[data-theme="dark"] .popular-card {
+  background: #251c1f;
+  border-color: #3d2f34;
+}
+
+[data-theme="dark"] .popular-card:hover {
+  border-color: #ff4d57;
+}
+
+[data-theme="dark"] .popular-card.selected {
+  background: #2b181c;
+  border-color: #ff4d57;
+}
+
+[data-theme="dark"] .popular-card-name {
+  color: #fdf2f4;
+}
+
+[data-theme="dark"] .popular-card-price {
+  color: #f6cb85;
+}
+
+[data-theme="dark"] .popular-qty-btn {
+  background: #35262c;
+  color: #ffffff;
+  border-color: #4a373d;
+}
+
+[data-theme="dark"] .popular-qty-btn:hover {
+  background: #47323b;
+}
+
+[data-theme="dark"] .popular-qty-val {
+  color: #ffffff;
+}
+
+/* Lista de Pizzas em Modo Escuro */
+[data-theme="dark"] .pizza-item {
+  background: var(--color-surface, #1b1517);
+  border-color: var(--color-border, #36292d);
+}
+
+[data-theme="dark"] .pizza-name {
+  color: #fdf2f4;
+}
+
+[data-theme="dark"] .pizza-price {
+  color: #f6cb85;
+}
+
+[data-theme="dark"] .pizza-variation-block {
+  background: #231a1d;
+  border-color: #3b2b30;
+}
+
+[data-theme="dark"] .variation-tag {
+  background: #312328;
+  color: #fce4e8;
+}
+
+[data-theme="dark"] .quantity-btn {
+  background: #312328;
+  color: #ffffff;
+  border-color: #48343b;
+}
+
+[data-theme="dark"] .quantity-btn:hover {
+  background: #45323a;
+}
+
+[data-theme="dark"] .ingredient-group h4 {
+  color: #d1c2c5;
+}
+
+[data-theme="dark"] .ingredient-checkbox {
+  color: #f3e5e7;
+}
+
+[data-theme="dark"] .add-variation-btn {
+  background: #261b1f;
+  border-color: #48343b;
+  color: #ff8088;
+}
+
+[data-theme="dark"] .add-variation-btn:hover {
+  background: #332127;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .empty-filter-results {
+  background: #1b1517;
+  border-color: #36292d;
+  color: #d1c2c5;
+}
+

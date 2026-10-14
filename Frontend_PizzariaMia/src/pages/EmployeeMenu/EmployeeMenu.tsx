@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NewOrderModal, { type ClientData } from './NewOrderModal';
+import { ThemeToggle } from '../../components/ThemeToggle/ThemeToggle';
 import api from '../../services/api';
 import { toast } from 'sonner';
 import './EmployeeMenu.css';
@@ -17,11 +18,15 @@ interface Pizza {
   name: string;
   price: number;
   category?: string;
+  badge?: string;
   ingredients: Ingredient[];
 }
 
 interface OrderItem {
+  id: string;
   pizzaId: number;
+  pizzaName: string;
+  price: number;
   quantity: number;
   addedIngredients: Ingredient[];
   removedIngredients: Ingredient[];
@@ -30,12 +35,20 @@ interface OrderItem {
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const CATEGORIES = ['Todas', 'Tradicionais', 'Especiais', 'Doces'];
 
+const DEFAULT_REMOVABLE_INGREDIENTS: Ingredient[] = [
+  { id: 101, name: 'Cebola', additionalPrice: 0 },
+  { id: 102, name: 'Azeitona', additionalPrice: 0 },
+  { id: 103, name: 'Orégano', additionalPrice: 0 },
+  { id: 104, name: 'Tomate', additionalPrice: 0 },
+];
+
 const DEFAULT_PIZZAS: Pizza[] = [
   {
     id: 1,
     name: 'Calabresa Especial',
     price: 54.90,
     category: 'Tradicionais',
+    badge: 'Mais Pedida',
     ingredients: [
       { id: 3, name: 'Cebola', additionalPrice: 0 },
       { id: 4, name: 'Milho', additionalPrice: 0 }
@@ -46,6 +59,7 @@ const DEFAULT_PIZZAS: Pizza[] = [
     name: 'Frango Desfiado Catupiry',
     price: 56.90,
     category: 'Tradicionais',
+    badge: 'Mais Pedida',
     ingredients: [
       { id: 1, name: 'Bacon Extra', additionalPrice: 5.00 },
       { id: 2, name: 'Catupiry Extra', additionalPrice: 4.00 }
@@ -66,6 +80,7 @@ const DEFAULT_PIZZAS: Pizza[] = [
     name: 'Quatro Queijos Premium',
     price: 62.90,
     category: 'Especiais',
+    badge: 'Mais Pedida',
     ingredients: [
       { id: 2, name: 'Catupiry Extra', additionalPrice: 4.00 }
     ]
@@ -75,6 +90,7 @@ const DEFAULT_PIZZAS: Pizza[] = [
     name: "Marguerita D'Itália",
     price: 58.00,
     category: 'Especiais',
+    badge: 'Mais Pedida',
     ingredients: [
       { id: 3, name: 'Cebola', additionalPrice: 0 }
     ]
@@ -93,6 +109,7 @@ const DEFAULT_PIZZAS: Pizza[] = [
     name: 'Brigadeiro Gourmet',
     price: 49.90,
     category: 'Doces',
+    badge: 'Mais Pedida',
     ingredients: []
   },
   {
@@ -114,7 +131,17 @@ const DEFAULT_PIZZAS: Pizza[] = [
 export default function EmployeeMenu() {
   const navigate = useNavigate();
   const [pizzas, setPizzas] = useState<Pizza[]>(DEFAULT_PIZZAS);
-  const [orderItems, setOrderItems] = useState<Record<number, OrderItem>>({});
+  const [pizzaVariations, setPizzaVariations] = useState<Record<number, OrderItem[]>>(() => {
+    const saved = localStorage.getItem('employeePizzaVariations');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return {};
+      }
+    }
+    return {};
+  });
   const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState(false);
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('Todas');
@@ -129,6 +156,11 @@ export default function EmployeeMenu() {
     }
     return null;
   });
+
+  // Mantém pizzaVariations persistido para retorno do checkout ou refresh
+  useEffect(() => {
+    localStorage.setItem('employeePizzaVariations', JSON.stringify(pizzaVariations));
+  }, [pizzaVariations]);
   
   // Lista global de ingredientes (simulação)
   const allIngredients: Ingredient[] = [
@@ -154,6 +186,11 @@ export default function EmployeeMenu() {
 
     fetchPizzas();
   }, []);
+
+  // Lista de pizzas mais pedidas para atalhos rápidos
+  const popularPizzas = useMemo(() => {
+    return pizzas.filter((p) => p.badge && p.badge.toLowerCase().includes('mais pedida'));
+  }, [pizzas]);
 
   // Conjunto de letras iniciais que possuem pizzas cadastradas
   const availableLetters = useMemo(() => {
@@ -183,45 +220,102 @@ export default function EmployeeMenu() {
     });
   }, [pizzas, activeCategory, selectedLetter]);
 
-  const handleQuantityChange = (pizzaId: number, delta: number) => {
-    setOrderItems(prev => {
-      const current = prev[pizzaId] || { pizzaId, quantity: 0, addedIngredients: [], removedIngredients: [] };
-      const newQuantity = Math.max(0, current.quantity + delta);
-      
-      if (newQuantity === 0) {
+  // Operações com variações de itens no pedido
+  const addVariation = (pizza: Pizza) => {
+    const newId = `var_${pizza.id}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const newVariation: OrderItem = {
+      id: newId,
+      pizzaId: pizza.id,
+      pizzaName: pizza.name,
+      price: pizza.price,
+      quantity: 1,
+      addedIngredients: [],
+      removedIngredients: []
+    };
+
+    setPizzaVariations((prev) => ({
+      ...prev,
+      [pizza.id]: [...(prev[pizza.id] || []), newVariation]
+    }));
+  };
+
+  const removeVariation = (pizzaId: number, variationId: string) => {
+    setPizzaVariations((prev) => {
+      const list = (prev[pizzaId] || []).filter((v) => v.id !== variationId);
+      if (list.length === 0) {
         const { [pizzaId]: _, ...rest } = prev;
         return rest;
       }
-      
-      return { ...prev, [pizzaId]: { ...current, quantity: newQuantity } };
+      return { ...prev, [pizzaId]: list };
     });
   };
 
-  const toggleIngredient = (pizzaId: number, ingredient: Ingredient, type: 'add' | 'remove') => {
-    setOrderItems(prev => {
-      const current = prev[pizzaId];
-      if (!current) return prev;
+  const removeAllVariations = (pizzaId: number) => {
+    setPizzaVariations((prev) => {
+      const { [pizzaId]: _, ...rest } = prev;
+      return rest;
+    });
+  };
 
+  const updateVariationQuantity = (pizzaId: number, variationId: string, delta: number) => {
+    setPizzaVariations((prev) => {
+      const list = prev[pizzaId] || [];
+      const updated = list
+        .map((v) => (v.id === variationId ? { ...v, quantity: Math.max(0, v.quantity + delta) } : v))
+        .filter((v) => v.quantity > 0);
+
+      if (updated.length === 0) {
+        const { [pizzaId]: _, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, [pizzaId]: updated };
+    });
+  };
+
+  const toggleVariationIngredient = (
+    pizzaId: number,
+    variationId: string,
+    ingredient: Ingredient,
+    type: 'add' | 'remove'
+  ) => {
+    setPizzaVariations((prev) => {
+      const list = prev[pizzaId] || [];
+      const targetIndex = list.findIndex((v) => v.id === variationId);
+      if (targetIndex === -1) return prev;
+
+      const target = list[targetIndex];
       const listKey = type === 'add' ? 'addedIngredients' : 'removedIngredients';
-      const list = current[listKey];
-      const exists = list.find(i => i.id === ingredient.id);
+      const currentList = target[listKey];
+      const exists = currentList.some((i) => i.id === ingredient.id);
 
-      const newList = exists 
-        ? list.filter(i => i.id !== ingredient.id)
-        : [...list, ingredient];
+      const newList = exists
+        ? currentList.filter((i) => i.id !== ingredient.id)
+        : [...currentList, ingredient];
 
-      return { ...prev, [pizzaId]: { ...current, [listKey]: newList } };
+      const updated = [...list];
+      updated[targetIndex] = {
+        ...target,
+        [listKey]: newList
+      };
+
+      return { ...prev, [pizzaId]: updated };
     });
   };
+
+  const totalQuantity = useMemo(() => {
+    return Object.values(pizzaVariations)
+      .flat()
+      .reduce((sum, item) => sum + item.quantity, 0);
+  }, [pizzaVariations]);
 
   const handleCheckout = () => {
-    const items = Object.values(orderItems);
-    if (items.length === 0) {
-      alert('Selecione pelo menos uma pizza.');
+    const allItems = Object.values(pizzaVariations).flat();
+    if (allItems.length === 0) {
+      toast.error('Selecione pelo menos uma pizza para o checkout.');
       return;
     }
-    // Salva no localStorage ou contexto para a tela de checkout
-    localStorage.setItem('employeeOrderItems', JSON.stringify(items));
+    // Salva no localStorage para a tela de checkout
+    localStorage.setItem('employeeOrderItems', JSON.stringify(allItems));
     navigate('/funcionario/checkout');
   };
 
@@ -242,6 +336,8 @@ export default function EmployeeMenu() {
     localStorage.removeItem('@PizzariaMia:token');
     localStorage.removeItem('@PizzariaMia:user');
     localStorage.removeItem('employeeSelectedClient');
+    localStorage.removeItem('employeeOrderItems');
+    localStorage.removeItem('employeePizzaVariations');
     navigate('/');
   };
 
@@ -264,6 +360,7 @@ export default function EmployeeMenu() {
           <span style={{ fontSize: '0.9rem', color: '#666' }}>{userName} ({userRole})</span>
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <ThemeToggle />
           <button
             type="button"
             onClick={() => setIsNewOrderModalOpen(true)}
@@ -389,6 +486,74 @@ export default function EmployeeMenu() {
         </div>
       </div>
 
+      {/* Seção Mais Pedidas (Atalhos Rápidos) */}
+      {popularPizzas.length > 0 && (
+        <section className="popular-pizzas-section">
+          <div className="popular-header">
+            <h3>
+              <span>🔥</span> Mais Pedidas
+            </h3>
+            <span>Atalhos rápidos para os sabores favoritos</span>
+          </div>
+
+          <div className="popular-grid">
+            {popularPizzas.map((pizza) => {
+              const variations = pizzaVariations[pizza.id] || [];
+              const totalPizzaQty = variations.reduce((sum, v) => sum + v.quantity, 0);
+
+              return (
+                <div key={pizza.id} className={`popular-card ${totalPizzaQty > 0 ? 'selected' : ''}`}>
+                  <div className="popular-card-top">
+                    <span className="popular-card-name">{pizza.name}</span>
+                    <span className="popular-card-badge">{pizza.badge || 'Mais Pedida'}</span>
+                  </div>
+
+                  <div className="popular-card-bottom">
+                    <span className="popular-card-price">R$ {pizza.price.toFixed(2)}</span>
+
+                    {totalPizzaQty === 0 ? (
+                      <button
+                        type="button"
+                        className="popular-add-btn"
+                        onClick={() => addVariation(pizza)}
+                      >
+                        + Adicionar
+                      </button>
+                    ) : (
+                      <div className="popular-qty-controls">
+                        <button
+                          type="button"
+                          className="popular-qty-btn"
+                          onClick={() => {
+                            if (variations.length > 0) {
+                              updateVariationQuantity(pizza.id, variations[variations.length - 1].id, -1);
+                            }
+                          }}
+                        >
+                          -
+                        </button>
+                        <span className="popular-qty-val">{totalPizzaQty}</span>
+                        <button
+                          type="button"
+                          className="popular-qty-btn"
+                          onClick={() => {
+                            if (variations.length > 0) {
+                              updateVariationQuantity(pizza.id, variations[variations.length - 1].id, 1);
+                            }
+                          }}
+                        >
+                          +
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {filteredPizzas.length === 0 ? (
         <div className="empty-filter-results">
           <p>Nenhuma pizza encontrada para os filtros selecionados.</p>
@@ -406,16 +571,26 @@ export default function EmployeeMenu() {
       ) : (
         <div className="pizza-list">
           {filteredPizzas.map((pizza) => {
-            const orderItem = orderItems[pizza.id];
-            const isSelected = !!orderItem && orderItem.quantity > 0;
+            const variations = pizzaVariations[pizza.id] || [];
+            const isSelected = variations.length > 0;
+            const removableList =
+              pizza.ingredients && pizza.ingredients.length > 0
+                ? pizza.ingredients
+                : DEFAULT_REMOVABLE_INGREDIENTS;
 
             return (
               <div key={pizza.id} className="pizza-item">
                 <div className="pizza-header">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     checked={isSelected}
-                    onChange={(e) => handleQuantityChange(pizza.id, e.target.checked ? 1 : -(orderItem?.quantity || 1))}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        addVariation(pizza);
+                      } else {
+                        removeAllVariations(pizza.id);
+                      }
+                    }}
                     style={{ width: '20px', height: '20px' }}
                   />
                   <div className="pizza-info">
@@ -434,50 +609,113 @@ export default function EmployeeMenu() {
                           {pizza.category}
                         </span>
                       )}
+                      {pizza.badge && (
+                        <span style={{
+                          marginLeft: '6px',
+                          fontSize: '0.725rem',
+                          padding: '2px 7px',
+                          borderRadius: '12px',
+                          background: '#ffedd5',
+                          color: '#c2410c',
+                          fontWeight: 600
+                        }}>
+                          🔥 {pizza.badge}
+                        </span>
+                      )}
                     </div>
                     <div className="pizza-price">R$ {pizza.price.toFixed(2)}</div>
                   </div>
-                  
-                  {isSelected && (
-                    <div className="quantity-controls">
-                      <button className="quantity-btn" onClick={() => handleQuantityChange(pizza.id, -1)}>-</button>
-                      <span>{orderItem.quantity}</span>
-                      <button className="quantity-btn" onClick={() => handleQuantityChange(pizza.id, 1)}>+</button>
-                    </div>
+
+                  {!isSelected && (
+                    <button
+                      type="button"
+                      className="popular-add-btn"
+                      onClick={() => addVariation(pizza)}
+                    >
+                      + Adicionar
+                    </button>
                   )}
                 </div>
 
                 {isSelected && (
-                  <div className="customization-panel">
-                    <div className="ingredient-groups">
-                      <div className="ingredient-group">
-                        <h4>Adicionar Extras</h4>
-                        {allIngredients.map((ing) => (
-                          <label key={ing.id} className="ingredient-checkbox">
-                            <input 
-                              type="checkbox"
-                              checked={orderItem.addedIngredients.some(i => i.id === ing.id)}
-                              onChange={() => toggleIngredient(pizza.id, ing, 'add')}
-                            />
-                            {ing.name} {ing.additionalPrice > 0 && `(+ R$ ${ing.additionalPrice.toFixed(2)})`}
-                          </label>
-                        ))}
+                  <div className="pizza-variations-container">
+                    {variations.map((variation, index) => (
+                      <div key={variation.id} className="pizza-variation-block">
+                        <div className="pizza-variation-header">
+                          <span className="variation-tag">
+                            🍕 {variations.length > 1 ? `Unidade #${index + 1}` : 'Personalização'}
+                          </span>
+                          <div className="variation-actions">
+                            <div className="quantity-controls">
+                              <button
+                                className="quantity-btn"
+                                onClick={() => updateVariationQuantity(pizza.id, variation.id, -1)}
+                              >
+                                -
+                              </button>
+                              <span>{variation.quantity}</span>
+                              <button
+                                className="quantity-btn"
+                                onClick={() => updateVariationQuantity(pizza.id, variation.id, 1)}
+                              >
+                                +
+                              </button>
+                            </div>
+                            {variations.length > 1 && (
+                              <button
+                                type="button"
+                                className="remove-variation-btn"
+                                onClick={() => removeVariation(pizza.id, variation.id)}
+                              >
+                                Excluir
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="ingredient-groups">
+                          <div className="ingredient-group">
+                            <h4>Adicionar Extras</h4>
+                            {allIngredients.map((ing) => (
+                              <label key={ing.id} className="ingredient-checkbox">
+                                <input
+                                  type="checkbox"
+                                  checked={variation.addedIngredients.some((i) => i.id === ing.id)}
+                                  onChange={() =>
+                                    toggleVariationIngredient(pizza.id, variation.id, ing, 'add')
+                                  }
+                                />
+                                {ing.name} {ing.additionalPrice > 0 && `(+ R$ ${ing.additionalPrice.toFixed(2)})`}
+                              </label>
+                            ))}
+                          </div>
+
+                          <div className="ingredient-group">
+                            <h4>Remover da Receita</h4>
+                            {removableList.map((ing) => (
+                              <label key={ing.id} className="ingredient-checkbox">
+                                <input
+                                  type="checkbox"
+                                  checked={variation.removedIngredients.some((i) => i.id === ing.id)}
+                                  onChange={() =>
+                                    toggleVariationIngredient(pizza.id, variation.id, ing, 'remove')
+                                  }
+                                />
+                                Sem {ing.name}
+                              </label>
+                            ))}
+                          </div>
+                        </div>
                       </div>
-                      
-                      <div className="ingredient-group">
-                        <h4>Remover Padrão</h4>
-                        {pizza.ingredients.map((ing) => (
-                          <label key={ing.id} className="ingredient-checkbox">
-                            <input 
-                              type="checkbox"
-                              checked={orderItem.removedIngredients.some(i => i.id === ing.id)}
-                              onChange={() => toggleIngredient(pizza.id, ing, 'remove')}
-                            />
-                            Sem {ing.name}
-                          </label>
-                        ))}
-                      </div>
-                    </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      className="add-variation-btn"
+                      onClick={() => addVariation(pizza)}
+                    >
+                      + Adicionar outra {pizza.name} com ingredientes diferentes
+                    </button>
                   </div>
                 )}
               </div>
@@ -487,7 +725,7 @@ export default function EmployeeMenu() {
       )}
 
       <button className="checkout-btn" onClick={handleCheckout}>
-        Ir para Checkout ({Object.keys(orderItems).length} itens)
+        Ir para Checkout ({totalQuantity} pizzas)
       </button>
 
       <NewOrderModal
