@@ -77,6 +77,21 @@ namespace PizzariaMia.Controllers
                         else textMessage = "[Mensagem]";
                     }
 
+                    // Evita duplicar mensagens que o próprio bot ou atendente acabou de salvar
+                    if (fromMe)
+                    {
+                        bool alreadySaved = _context.WhatsAppMessages.Any(m =>
+                            m.FromMe &&
+                            m.RemoteJid == remoteJid &&
+                            m.Text == textMessage &&
+                            m.CreatedAt >= DateTime.UtcNow.AddSeconds(-15));
+
+                        if (alreadySaved)
+                        {
+                            return Ok();
+                        }
+                    }
+
                     // Persiste a mensagem no histórico do Chat
                     var incomingChatMsg = new PizzariaMia.Models.WhatsAppMessage
                     {
