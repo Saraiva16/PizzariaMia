@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { toast } from 'sonner';
 import { ThemeToggle } from '../../components/ThemeToggle/ThemeToggle';
+import { useWhatsAppNotification } from '../../contexts/WhatsAppNotificationContext';
 import './EmployeeOrders.css';
 
 interface OrderItemDetail {
@@ -47,6 +48,7 @@ type StatusFilterType = 'todos' | 'andamento' | 'a_caminho' | 'concluidos';
 
 export default function EmployeeOrders() {
   const navigate = useNavigate();
+  const { unreadConversationsCount } = useWhatsAppNotification();
   const [orders, setOrders] = useState<EmployeeOrder[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>('todos');
@@ -223,6 +225,11 @@ export default function EmployeeOrders() {
             onClick={() => navigate('/funcionario/chat')}
           >
             💬 WhatsApp Chat
+            {unreadConversationsCount > 0 && (
+              <span className="nav-tab-unread-badge" title={`${unreadConversationsCount} conversa(s) com mensagens não abertas`}>
+                {unreadConversationsCount}
+              </span>
+            )}
           </button>
         </nav>
 

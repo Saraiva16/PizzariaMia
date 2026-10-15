@@ -144,7 +144,7 @@ using (var scope = app.Services.CreateScope())
 
     context.SaveChanges();
 
-    // Garante que a tabela WhatsAppMessages exista no PostgreSQL
+    // Garante que a tabela WhatsAppMessages e a coluna IsRead existam no PostgreSQL
     context.Database.ExecuteSqlRaw(@"
         CREATE TABLE IF NOT EXISTS ""WhatsAppMessages"" (
             ""Id"" SERIAL PRIMARY KEY,
@@ -155,8 +155,10 @@ using (var scope = app.Services.CreateScope())
             ""FromMe"" BOOLEAN NOT NULL DEFAULT FALSE,
             ""MessageType"" TEXT NOT NULL DEFAULT 'text',
             ""Timestamp"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-            ""CreatedAt"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+            ""CreatedAt"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+            ""IsRead"" BOOLEAN NOT NULL DEFAULT TRUE
         );
+        ALTER TABLE ""WhatsAppMessages"" ADD COLUMN IF NOT EXISTS ""IsRead"" BOOLEAN NOT NULL DEFAULT TRUE;
     ");
 }
 

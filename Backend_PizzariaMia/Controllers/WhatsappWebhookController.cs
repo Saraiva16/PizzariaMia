@@ -103,7 +103,8 @@ namespace PizzariaMia.Controllers
                         FromMe = fromMe,
                         MessageType = isOrderMessage ? "order" : "text",
                         Timestamp = DateTime.UtcNow,
-                        CreatedAt = DateTime.UtcNow
+                        CreatedAt = DateTime.UtcNow,
+                        IsRead = fromMe // se for mensagem do cliente, chega não lida (false)
                     };
                     _context.WhatsAppMessages.Add(incomingChatMsg);
                     await _context.SaveChangesAsync();
@@ -274,32 +275,33 @@ namespace PizzariaMia.Controllers
              return Ok(new { success = true });
          }
 
-         private async Task SendBotResponseAsync(string remoteJid, string phoneNum, string text)
-         {
-             try
-             {
-                 await _evolutionApi.SendTextAsync(remoteJid, text);
+        private async Task SendBotResponseAsync(string remoteJid, string phoneNum, string text)
+        {
+            try
+            {
+                await _evolutionApi.SendTextAsync(remoteJid, text);
 
-                 var botMsg = new PizzariaMia.Models.WhatsAppMessage
-                 {
-                     RemoteJid = remoteJid,
-                     SenderPhone = phoneNum,
-                     SenderName = "Pizzaria Mia (Bot)",
-                     Text = text,
-                     FromMe = true,
-                     MessageType = "text",
-                     Timestamp = DateTime.UtcNow,
-                     CreatedAt = DateTime.UtcNow
-                 };
-                 _context.WhatsAppMessages.Add(botMsg);
-                 await _context.SaveChangesAsync();
+                var botMsg = new PizzariaMia.Models.WhatsAppMessage
+                {
+                    RemoteJid = remoteJid,
+                    SenderPhone = phoneNum,
+                    SenderName = "Pizzaria Mia (Bot)",
+                    Text = text,
+                    FromMe = true,
+                    MessageType = "text",
+                    Timestamp = DateTime.UtcNow,
+                    CreatedAt = DateTime.UtcNow,
+                    IsRead = true
+                };
+                _context.WhatsAppMessages.Add(botMsg);
+                await _context.SaveChangesAsync();
 
-                 await _hubContext.Clients.All.SendAsync("NewWhatsAppMessage", botMsg);
-             }
-             catch (Exception ex)
-             {
-                 _logger.LogWarning($"Falha ao persistir ou transmitir resposta do bot: {ex.Message}");
-             }
-         }
+                await _hubContext.Clients.All.SendAsync("NewWhatsAppMessage", botMsg);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"Falha ao persistir ou transmitir resposta do bot: {ex.Message}");
+            }
+        }
      }
  }

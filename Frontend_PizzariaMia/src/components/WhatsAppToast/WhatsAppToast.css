@@ -1,0 +1,231 @@
+/* ============================================================================
+   WhatsAppToast.css - Notificação flutuante estilo Steam (Canto Inferior Direito)
+   ============================================================================ */
+
+.whatsapp-steam-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  background: var(--color-surface, #ffffff);
+  border: 1px solid rgba(37, 211, 102, 0.4);
+  border-left: 5px solid #25d366;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16), 0 2px 8px rgba(37, 211, 102, 0.2);
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: inherit;
+  color: var(--color-text, #190203);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.whatsapp-steam-toast:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(37, 211, 102, 0.25);
+}
+
+/* Animações estilo Steam */
+.toast-slide-in {
+  animation: steamSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.toast-fade-out {
+  animation: steamSlideOut 0.3s cubic-bezier(0.7, 0, 0.84, 0) forwards;
+}
+
+@keyframes steamSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(110%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes steamSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(110%) scale(0.92);
+  }
+}
+
+/* Header do Toast */
+.toast-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.9rem;
+  background-color: rgba(37, 211, 102, 0.08);
+  border-bottom: 1px solid var(--color-border-subtle, #f1f5f9);
+}
+
+.toast-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.toast-wa-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.toast-app-name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #128c7e;
+}
+
+.toast-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--color-text-muted, #64748b);
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: 4px;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.toast-close-btn:hover {
+  color: #ed2a34;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Corpo do Toast */
+.toast-body {
+  padding: 0.85rem 1rem 0.65rem 1rem;
+}
+
+.toast-client-info {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.toast-client-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text, #0f172a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toast-client-phone {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #64748b);
+  white-space: nowrap;
+}
+
+.toast-message-preview {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  color: var(--color-text-muted, #475569);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+/* Ações */
+.toast-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.4rem 0.9rem 0.75rem 0.9rem;
+}
+
+.toast-open-chat-btn {
+  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  box-shadow: 0 2px 6px rgba(37, 211, 102, 0.3);
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.toast-open-chat-btn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+/* Barra de progresso de auto-fechamento */
+.toast-progress-bar {
+  width: 100%;
+  height: 3px;
+  background-color: rgba(37, 211, 102, 0.15);
+  overflow: hidden;
+}
+
+.toast-progress-fill {
+  height: 100%;
+  width: 100%;
+  background-color: #25d366;
+  animation: toastProgress 6.5s linear forwards;
+}
+
+@keyframes toastProgress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+/* ============================================================================
+   Suporte ao Dark Mode
+   ============================================================================ */
+[data-theme="dark"] .whatsapp-steam-toast {
+  background: #1e293b;
+  border-color: rgba(37, 211, 102, 0.3);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(37, 211, 102, 0.2);
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .toast-header {
+  background-color: rgba(37, 211, 102, 0.12);
+  border-bottom-color: #334155;
+}
+
+[data-theme="dark"] .toast-app-name {
+  color: #4ade80;
+}
+
+[data-theme="dark"] .toast-client-name {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .toast-client-phone,
+[data-theme="dark"] .toast-message-preview {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .toast-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}

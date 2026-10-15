@@ -110,3 +110,49 @@ button {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-primary);
 }
+
+/* ============================================================================
+   Selo de Notificação de Mensagens do WhatsApp (.nav-tab-unread-badge)
+   ============================================================================ */
+.nav-tab-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-tab-unread-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  border-radius: 9999px;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.45);
+  animation: badgePopIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  letter-spacing: -0.2px;
+}
+
+@keyframes badgePopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+[data-theme="dark"] .nav-tab-unread-badge {
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(248, 113, 113, 0.5);
+}
+

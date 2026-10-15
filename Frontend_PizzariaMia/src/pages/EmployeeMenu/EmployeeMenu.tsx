@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NewOrderModal, { type ClientData } from './NewOrderModal';
 import { ThemeToggle } from '../../components/ThemeToggle/ThemeToggle';
+import { useWhatsAppNotification } from '../../contexts/WhatsAppNotificationContext';
 import api from '../../services/api';
 import { toast } from 'sonner';
 import './EmployeeMenu.css';
@@ -130,6 +131,7 @@ const DEFAULT_PIZZAS: Pizza[] = [
 
 export default function EmployeeMenu() {
   const navigate = useNavigate();
+  const { unreadConversationsCount } = useWhatsAppNotification();
   const [pizzas, setPizzas] = useState<Pizza[]>(DEFAULT_PIZZAS);
   const [pizzaVariations, setPizzaVariations] = useState<Record<number, OrderItem[]>>(() => {
     const saved = localStorage.getItem('employeePizzaVariations');
@@ -381,6 +383,11 @@ export default function EmployeeMenu() {
             onClick={() => navigate('/funcionario/chat')}
           >
             💬 WhatsApp Chat
+            {unreadConversationsCount > 0 && (
+              <span className="nav-tab-unread-badge" title={`${unreadConversationsCount} conversa(s) com mensagens não abertas`}>
+                {unreadConversationsCount}
+              </span>
+            )}
           </button>
         </nav>
 

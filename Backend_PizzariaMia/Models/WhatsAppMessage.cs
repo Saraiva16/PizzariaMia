@@ -22,5 +22,7 @@ namespace PizzariaMia.Models
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public bool IsRead { get; set; } = false;
     }
 }

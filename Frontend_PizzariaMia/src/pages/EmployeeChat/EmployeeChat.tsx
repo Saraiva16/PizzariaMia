@@ -4,6 +4,7 @@ import api from '../../services/api';
 import * as signalR from '@microsoft/signalr';
 import { toast } from 'sonner';
 import { ThemeToggle } from '../../components/ThemeToggle/ThemeToggle';
+import { useWhatsAppNotification } from '../../contexts/WhatsAppNotificationContext';
 import './EmployeeChat.css';
 
 interface ChatConversation {
@@ -34,6 +35,7 @@ export default function EmployeeChat() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const targetPhoneParam = searchParams.get('phone');
+  const { unreadConversationsCount, markConversationAsRead } = useWhatsAppNotification();
 
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<ChatConversation | null>(null);
@@ -111,8 +113,14 @@ export default function EmployeeChat() {
   useEffect(() => {
     if (selectedConversation) {
       fetchMessages(selectedConversation.phone);
+      if (selectedConversation.unread) {
+        markConversationAsRead(selectedConversation.phone);
+        setConversations((prev) =>
+          prev.map((c) => (c.phone === selectedConversation.phone ? { ...c, unread: false } : c))
+        );
+      }
     }
-  }, [selectedConversation, fetchMessages]);
+  }, [selectedConversation, fetchMessages, markConversationAsRead]);
 
   // Referência para acessar conversa selecionada dentro dos listeners do SignalR
   const selectedConversationRef = useRef<ChatConversation | null>(null);
@@ -283,6 +291,11 @@ export default function EmployeeChat() {
             onClick={() => navigate('/funcionario/chat')}
           >
             💬 WhatsApp Chat
+            {unreadConversationsCount > 0 && (
+              <span className="nav-tab-unread-badge" title={`${unreadConversationsCount} conversa(s) com mensagens não abertas`}>
+                {unreadConversationsCount}
+              </span>
+            )}
           </button>
         </nav>
 

@@ -37,6 +37,61 @@ namespace PizzariaMia.Controllers
             public string Text { get; set; } = string.Empty;
         }
 
+        public class MarkReadDto
+        {
+            public string Phone { get; set; } = string.Empty;
+        }
+
+        [HttpGet("unread-count")]
+        public async Task<IActionResult> GetUnreadCount()
+        {
+            // Contagem do número de conversas (clientes) com mensagens não lidas
+            var unreadConversationsCount = await _context.WhatsAppMessages
+                .Where(m => !m.FromMe && !m.IsRead)
+                .Select(m => m.SenderPhone)
+                .Distinct()
+                .CountAsync();
+
+            return Ok(new { count = unreadConversationsCount });
+        }
+
+        [HttpPost("mark-read")]
+        public async Task<IActionResult> MarkAsRead([FromBody] MarkReadDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Phone))
+                return BadRequest("Telefone é obrigatório.");
+
+            string cleanPhone = dto.Phone.Replace("+", "").Replace(" ", "").Replace("-", "").Replace("(", "").Replace(")", "").Trim();
+
+            var unreadMessages = await _context.WhatsAppMessages
+                .Where(m => !m.FromMe && !m.IsRead && (m.SenderPhone == cleanPhone || m.RemoteJid.StartsWith(cleanPhone)))
+                .ToListAsync();
+
+            if (unreadMessages.Any())
+            {
+                foreach (var msg in unreadMessages)
+                {
+                    msg.IsRead = true;
+                }
+                await _context.SaveChangesAsync();
+
+                // Recalcula o número total de conversas não lidas e notifica via SignalR
+                var updatedCount = await _context.WhatsAppMessages
+                    .Where(m => !m.FromMe && !m.IsRead)
+                    .Select(m => m.SenderPhone)
+                    .Distinct()
+                    .CountAsync();
+
+                await _hubContext.Clients.All.SendAsync("WhatsAppUnreadCountUpdated", new
+                {
+                    count = updatedCount,
+                    phone = cleanPhone
+                });
+            }
+
+            return Ok(new { success = true });
+        }
+
         [HttpGet("conversations")]
         public async Task<IActionResult> GetConversations()
         {
@@ -70,7 +125,7 @@ namespace PizzariaMia.Controllers
                         lastMessage = latest.Text,
                         lastMessageTime = latest.Timestamp,
                         lastMessageFromMe = latest.FromMe,
-                        unread = false,
+                        unread = g.Any(m => !m.FromMe && !m.IsRead),
                         activeOrderId = latestOrder?.Id,
                         activeOrderStatus = latestOrder?.Status.ToString(),
                         activeOrderTotal = latestOrder?.TotalAmount
@@ -135,13 +190,25 @@ namespace PizzariaMia.Controllers
                 FromMe = true,
                 MessageType = "text",
                 Timestamp = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                IsRead = true
             };
 
             _context.WhatsAppMessages.Add(message);
+
+            // Marca mensagens anteriores não lidas deste cliente como lidas
+            var pendingCustomerMsgs = await _context.WhatsAppMessages
+                .Where(m => !m.FromMe && !m.IsRead && (m.SenderPhone == cleanPhone || m.RemoteJid.StartsWith(cleanPhone)))
+                .ToListAsync();
+
+            foreach (var pending in pendingCustomerMsgs)
+            {
+                pending.IsRead = true;
+            }
+
             await _context.SaveChangesAsync();
 
-            // Notifica os clientes SignalR conectados
+            // Notifica os clientes SignalR conectados sobre a nova mensagem
             await _hubContext.Clients.All.SendAsync("NewWhatsAppMessage", new
             {
                 id = message.Id,
@@ -151,8 +218,25 @@ namespace PizzariaMia.Controllers
                 text = message.Text,
                 fromMe = message.FromMe,
                 messageType = message.MessageType,
-                timestamp = message.Timestamp
+                timestamp = message.Timestamp,
+                isRead = message.IsRead
             });
+
+            // Se limpou mensagens não lidas, notifica o novo contador de conversas
+            if (pendingCustomerMsgs.Any())
+            {
+                var newCount = await _context.WhatsAppMessages
+                    .Where(m => !m.FromMe && !m.IsRead)
+                    .Select(m => m.SenderPhone)
+                    .Distinct()
+                    .CountAsync();
+
+                await _hubContext.Clients.All.SendAsync("WhatsAppUnreadCountUpdated", new
+                {
+                    count = newCount,
+                    phone = cleanPhone
+                });
+            }
 
             return Ok(new
             {
