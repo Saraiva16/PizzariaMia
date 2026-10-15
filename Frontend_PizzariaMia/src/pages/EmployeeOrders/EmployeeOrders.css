@@ -161,6 +161,81 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
+.orders-toolbar-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.orders-toolbar-row .search-input-wrapper {
+  flex: 1;
+  min-width: 280px;
+}
+
+.orders-calendar-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background-color: var(--color-surface-hover, #f8fafc);
+  border: 1px solid var(--color-border, #cbd5e1);
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.calendar-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text, #1e293b);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+}
+
+.orders-calendar-input {
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
+  background-color: var(--color-surface, #ffffff);
+  color: var(--color-text, #1e293b);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.orders-calendar-input:focus {
+  border-color: var(--color-primary, #ed2a34);
+}
+
+.clear-date-btn {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.clear-date-btn:hover {
+  background-color: #fecaca;
+}
+
+.current-shift-indicator {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #15803d;
+  background-color: #dcfce7;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid #bbf7d0;
+}
+
 .search-input-wrapper {
   position: relative;
   display: flex;
@@ -743,3 +818,112 @@
   background-color: #0f2e1a;
   color: #4ade80;
 }
+
+/* Barra de Paginação */
+.orders-pagination-bar {
+  margin-top: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.pagination-info {
+  font-size: 0.9rem;
+  color: var(--color-text-muted, #64748b);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.pagination-nav-btn {
+  background-color: var(--color-surface-hover, #f8fafc);
+  border: 1px solid var(--color-border, #cbd5e1);
+  color: var(--color-text, #1e293b);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-nav-btn:hover:not(:disabled) {
+  background-color: var(--color-primary, #ed2a34);
+  color: #ffffff;
+  border-color: var(--color-primary, #ed2a34);
+}
+
+.pagination-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-pages-indicator {
+  font-size: 0.9rem;
+  color: var(--color-text, #1e293b);
+  font-weight: 500;
+}
+
+/* Modo Escuro para Calendário e Paginação */
+[data-theme="dark"] .orders-calendar-filter {
+  background-color: #1e1e24;
+  border-color: #33333d;
+}
+
+[data-theme="dark"] .calendar-label {
+  color: #e9edef;
+}
+
+[data-theme="dark"] .orders-calendar-input {
+  background-color: #272730;
+  border-color: #444450;
+  color: #e9edef;
+  color-scheme: dark;
+}
+
+[data-theme="dark"] .clear-date-btn {
+  background-color: #451a1a;
+  color: #fca5a5;
+  border-color: #7f1d1d;
+}
+
+[data-theme="dark"] .clear-date-btn:hover {
+  background-color: #5c2020;
+}
+
+[data-theme="dark"] .current-shift-indicator {
+  background-color: #142e1d;
+  color: #86efac;
+  border-color: #166534;
+}
+
+[data-theme="dark"] .orders-pagination-bar {
+  background-color: #1e1e24;
+  border-color: #33333d;
+}
+
+[data-theme="dark"] .pagination-nav-btn {
+  background-color: #272730;
+  border-color: #3f3f4e;
+  color: #e9edef;
+}
+
+[data-theme="dark"] .pagination-nav-btn:hover:not(:disabled) {
+  background-color: var(--color-primary, #ed2a34);
+  color: #ffffff;
+}
+
+[data-theme="dark"] .pagination-pages-indicator {
+  color: #e9edef;
+}
+

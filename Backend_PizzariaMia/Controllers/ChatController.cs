@@ -17,15 +17,18 @@ namespace PizzariaMia.Controllers
         private readonly AppDbContext _context;
         private readonly IEvolutionApiService _evolutionApi;
         private readonly IHubContext<OrderTrackingHub> _hubContext;
+        private readonly PizzariaMia.Services.IBotStateService _botState;
 
         public ChatController(
             AppDbContext context,
             IEvolutionApiService evolutionApi,
-            IHubContext<OrderTrackingHub> hubContext)
+            IHubContext<OrderTrackingHub> hubContext,
+            PizzariaMia.Services.IBotStateService botState)
         {
             _context = context;
             _evolutionApi = evolutionApi;
             _hubContext = hubContext;
+            _botState = botState;
         }
 
         public class SendMessageDto

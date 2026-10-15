@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { toast } from 'sonner';
@@ -29,6 +29,20 @@ interface EmployeeOrder {
   items: OrderItemDetail[];
 }
 
+interface EmployeeOrdersResponse {
+  orders: EmployeeOrder[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  counts: {
+    todos: number;
+    andamento: number;
+    a_caminho: number;
+    concluidos: number;
+  };
+}
+
 type StatusFilterType = 'todos' | 'andamento' | 'a_caminho' | 'concluidos';
 
 export default function EmployeeOrders() {
@@ -36,6 +50,16 @@ export default function EmployeeOrders() {
   const [orders, setOrders] = useState<EmployeeOrder[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>('todos');
+  const [selectedDate, setSelectedDate] = useState<string>(''); // Vazio = Turno atual (corte 3h)
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [counts, setCounts] = useState({
+    todos: 0,
+    andamento: 0,
+    a_caminho: 0,
+    concluidos: 0
+  });
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
 
@@ -49,16 +73,34 @@ export default function EmployeeOrders() {
       if (statusFilter !== 'todos') {
         params.append('statusFilter', statusFilter);
       }
+      if (selectedDate) {
+        params.append('date', selectedDate);
+      }
+      params.append('page', page.toString());
+      params.append('pageSize', '20');
 
-      const response = await api.get<EmployeeOrder[]>(`/orders/employee-orders?${params.toString()}`);
-      setOrders(response.data || []);
+      const response = await api.get<EmployeeOrdersResponse>(`/orders/employee-orders?${params.toString()}`);
+      if (response.data) {
+        setOrders(response.data.orders || []);
+        setPage(response.data.page || 1);
+        setTotalPages(response.data.totalPages || 1);
+        setTotalCount(response.data.totalCount || 0);
+        if (response.data.counts) {
+          setCounts(response.data.counts);
+        }
+      }
     } catch (error: unknown) {
       const err = error as { response?: { data?: { error?: string } } };
       toast.error(err.response?.data?.error || 'Erro ao carregar lista de pedidos.');
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, statusFilter]);
+  }, [searchQuery, statusFilter, selectedDate, page]);
+
+  // Quando busca, status ou data mudarem, reinicia na primeira página
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter, selectedDate]);
 
   // Recarrega quando os filtros ou busca mudam
   useEffect(() => {
@@ -129,15 +171,6 @@ export default function EmployeeOrders() {
     const diffHours = Math.floor(diffMinutes / 60);
     return `Há ${diffHours}h ${diffMinutes % 60}m`;
   };
-
-  const counts = useMemo(() => {
-    return {
-      todos: orders.length,
-      andamento: orders.filter((o) => o.status === 'Pending' || o.status === 'Preparing').length,
-      a_caminho: orders.filter((o) => o.status === 'OutForDelivery').length,
-      concluidos: orders.filter((o) => o.status === 'Completed').length
-    };
-  }, [orders]);
 
   const storedUser = localStorage.getItem('@PizzariaMia:user');
   let userName = 'Funcionário';
@@ -220,26 +253,57 @@ export default function EmployeeOrders() {
 
         {/* Filtros e Barra de Pesquisa */}
         <section className="orders-search-filters-bar">
-          <div className="search-input-wrapper">
-            <span className="search-icon">🔍</span>
-            <input
-              type="text"
-              className="orders-search-input"
-              placeholder="Buscar por Nome do Cliente, Telefone, Endereço ou Nº do Pedido..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              autoFocus
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                className="clear-search-btn"
-                onClick={() => setSearchQuery('')}
-                title="Limpar busca"
-              >
-                &times;
-              </button>
-            )}
+          <div className="orders-toolbar-row">
+            <div className="search-input-wrapper">
+              <span className="search-icon">🔍</span>
+              <input
+                type="text"
+                className="orders-search-input"
+                placeholder="Buscar por Nome do Cliente, Telefone, Endereço ou Nº do Pedido..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  className="clear-search-btn"
+                  onClick={() => setSearchQuery('')}
+                  title="Limpar busca"
+                >
+                  &times;
+                </button>
+              )}
+            </div>
+
+            {/* Seletor de Data / Calendário */}
+            <div className="orders-calendar-filter">
+              <label htmlFor="orders-calendar-input" className="calendar-label" title="Filtrar por data específica">
+                📅 <span>Data:</span>
+              </label>
+              <input
+                id="orders-calendar-input"
+                type="date"
+                className="orders-calendar-input"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                title="Selecione um dia específico no calendário"
+              />
+              {selectedDate ? (
+                <button
+                  type="button"
+                  className="clear-date-btn"
+                  onClick={() => setSelectedDate('')}
+                  title="Voltar ao turno operacional atual"
+                >
+                  ✕ Voltar ao Turno Atual
+                </button>
+              ) : (
+                <span className="current-shift-indicator" title="Exibindo pedidos do turno operacional atual (reset automático às 03:00)">
+                  🟢 Turno Atual (reset às 3h)
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="status-filters-pills">
@@ -248,28 +312,28 @@ export default function EmployeeOrders() {
               className={`filter-pill ${statusFilter === 'todos' ? 'active' : ''}`}
               onClick={() => setStatusFilter('todos')}
             >
-              Todos {statusFilter === 'todos' && `(${counts.todos})`}
+              Todos ({counts.todos})
             </button>
             <button
               type="button"
               className={`filter-pill ${statusFilter === 'andamento' ? 'active' : ''}`}
               onClick={() => setStatusFilter('andamento')}
             >
-              🔥 Em Andamento {statusFilter === 'todos' ? `(${counts.andamento})` : ''}
+              🔥 Em Andamento ({counts.andamento})
             </button>
             <button
               type="button"
               className={`filter-pill ${statusFilter === 'a_caminho' ? 'active' : ''}`}
               onClick={() => setStatusFilter('a_caminho')}
             >
-              🛵 A Caminho {statusFilter === 'todos' ? `(${counts.a_caminho})` : ''}
+              🛵 A Caminho ({counts.a_caminho})
             </button>
             <button
               type="button"
               className={`filter-pill ${statusFilter === 'concluidos' ? 'active' : ''}`}
               onClick={() => setStatusFilter('concluidos')}
             >
-              ✅ Concluídos {statusFilter === 'todos' ? `(${counts.concluidos})` : ''}
+              ✅ Concluídos ({counts.concluidos})
             </button>
           </div>
         </section>
@@ -328,13 +392,6 @@ export default function EmployeeOrders() {
                         {order.customerPhone && (
                           <div className="client-phone-row">
                             <span>📞 {order.customerPhone}</span>
-                            <a
-                              href={`tel:${order.customerPhone.replace(/\D/g, '')}`}
-                              className="call-client-link"
-                              title="Ligar para o cliente"
-                            >
-                              Ligar
-                            </a>
                             <button
                               type="button"
                               className="whatsapp-chat-shortcut-btn"
@@ -439,6 +496,48 @@ export default function EmployeeOrders() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Barra de Paginação (20 por página) */}
+        {!loading && totalPages > 1 && (
+          <div className="orders-pagination-bar">
+            <span className="pagination-info">
+              Mostrando {orders.length > 0 ? (page - 1) * 20 + 1 : 0} a{' '}
+              {Math.min(page * 20, totalCount)} de <strong>{totalCount}</strong> pedidos
+            </span>
+
+            <div className="pagination-controls">
+              <button
+                type="button"
+                className="pagination-nav-btn"
+                disabled={page <= 1}
+                onClick={() => {
+                  setPage((prev) => Math.max(1, prev - 1));
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                title="Página anterior"
+              >
+                &laquo; Anterior
+              </button>
+
+              <div className="pagination-pages-indicator">
+                Página <strong>{page}</strong> de <strong>{totalPages}</strong>
+              </div>
+
+              <button
+                type="button"
+                className="pagination-nav-btn"
+                disabled={page >= totalPages}
+                onClick={() => {
+                  setPage((prev) => Math.min(totalPages, prev + 1));
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                title="Próxima página"
+              >
+                Próxima &raquo;
+              </button>
+            </div>
           </div>
         )}
       </main>

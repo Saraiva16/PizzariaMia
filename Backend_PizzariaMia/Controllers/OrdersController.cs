@@ -21,13 +21,20 @@ namespace PizzariaMia.Controllers
         private readonly IPizzaRepository _pizzaRepository;
         private readonly IHubContext<OrderTrackingHub> _hubContext;
         private readonly PizzariaMia.Data.AppDbContext _context;
+        private readonly PizzariaMia.Services.IBotStateService _botState;
 
-        public OrdersController(IOrderRepository orderRepository, IPizzaRepository pizzaRepository, IHubContext<OrderTrackingHub> hubContext, PizzariaMia.Data.AppDbContext context)
+        public OrdersController(
+            IOrderRepository orderRepository,
+            IPizzaRepository pizzaRepository,
+            IHubContext<OrderTrackingHub> hubContext,
+            PizzariaMia.Data.AppDbContext context,
+            PizzariaMia.Services.IBotStateService botState)
         {
             _orderRepository = orderRepository;
             _pizzaRepository = pizzaRepository;
             _hubContext = hubContext;
             _context = context;
+            _botState = botState;
         }
 
         [HttpPost]
@@ -137,6 +144,22 @@ namespace PizzariaMia.Controllers
             order.UpdatedAt = DateTime.UtcNow;
             await _orderRepository.UpdateAsync(order);
 
+            // Se o pedido foi concluído ou cancelado, libera a máquina de estados do bot para novo pedido
+            if (newStatus == OrderStatus.Completed || newStatus == OrderStatus.Canceled)
+            {
+                try
+                {
+                    var user = await _context.Users.FindAsync(order.UserId);
+                    if (user != null && !string.IsNullOrWhiteSpace(user.Phone))
+                    {
+                        string cleanPhone = user.Phone.Replace("+", "").Replace(" ", "").Replace("-", "").Replace("(", "").Replace(")", "").Trim();
+                        string remoteJid = $"{cleanPhone}@s.whatsapp.net";
+                        await _botState.ClearUserStepAsync(remoteJid);
+                    }
+                }
+                catch { }
+            }
+
             // Dispara WebSockets em tempo real para o front-end
             await _hubContext.Clients.Group($"Order_{order.Id}").SendAsync("StatusChanged", order.Status.ToString());
 
@@ -207,20 +230,52 @@ namespace PizzariaMia.Controllers
 
         [HttpGet("employee-orders")]
         [Authorize(Roles = "Employee,Admin")]
-        public async Task<IActionResult> GetEmployeeOrders([FromQuery] string? query, [FromQuery] string? statusFilter)
+        public async Task<IActionResult> GetEmployeeOrders(
+            [FromQuery] string? query,
+            [FromQuery] string? statusFilter,
+            [FromQuery] string? date,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
         {
-            var ordersQuery = _context.Orders
+            var baseOrdersQuery = _context.Orders
                 .Include(o => o.Items)
                     .ThenInclude(i => i.Pizza)
                 .Include(o => o.Address)
                 .Include(o => o.User)
                 .AsQueryable();
 
-            // Filtro por termo de busca (nome, telefone, endereço ou ID do pedido)
+            // 1. Regra de Data / Turno Operacional (corte diário às 03:00 da manhã)
+            if (!string.IsNullOrWhiteSpace(date))
+            {
+                // Se uma data específica foi informada pelo calendário (formato YYYY-MM-DD)
+                if (DateTime.TryParse(date, out DateTime selectedDay))
+                {
+                    // Considera o dia selecionado no fuso horário de Brasília (UTC-3: 00:00 BR = 03:00 UTC)
+                    var dayStartUtc = DateTime.SpecifyKind(selectedDay.Date, DateTimeKind.Utc).AddHours(3);
+                    var dayEndUtc = dayStartUtc.AddDays(1).AddTicks(-1);
+                    baseOrdersQuery = baseOrdersQuery.Where(o => o.CreatedAt >= dayStartUtc && o.CreatedAt <= dayEndUtc);
+                }
+            }
+            else
+            {
+                // Turno Atual (Padrão): Limpa pedidos concluídos/cancelados do expediente anterior às 03:00 da manhã
+                var brNow = DateTime.UtcNow.AddHours(-3);
+                DateTime shiftStartBr = brNow.Hour < 3 
+                    ? brNow.Date.AddDays(-1).AddHours(3) 
+                    : brNow.Date.AddHours(3);
+                DateTime shiftStartUtc = shiftStartBr.AddHours(3);
+
+                // Pedidos ativos continuam visíveis, mas pedidos já concluídos ou cancelados de antes das 3h somem
+                baseOrdersQuery = baseOrdersQuery.Where(o => 
+                    (o.Status != OrderStatus.Completed && o.Status != OrderStatus.Canceled) || 
+                    o.CreatedAt >= shiftStartUtc);
+            }
+
+            // 2. Filtro por termo de busca (nome, telefone, endereço ou ID do pedido)
             if (!string.IsNullOrWhiteSpace(query))
             {
                 var lowerQuery = query.Trim().ToLower();
-                ordersQuery = ordersQuery.Where(o =>
+                baseOrdersQuery = baseOrdersQuery.Where(o =>
                     (o.CustomerName != null && o.CustomerName.ToLower().Contains(lowerQuery)) ||
                     (o.User != null && o.User.Name.ToLower().Contains(lowerQuery)) ||
                     (o.CustomerPhone != null && o.CustomerPhone.Contains(lowerQuery)) ||
@@ -230,7 +285,14 @@ namespace PizzariaMia.Controllers
                 );
             }
 
-            // Filtro por status
+            // 3. Contadores para as abas de status (calculados antes de filtrar por status específico)
+            var totalCount = await baseOrdersQuery.CountAsync();
+            var inProgressCount = await baseOrdersQuery.CountAsync(o => o.Status == OrderStatus.Pending || o.Status == OrderStatus.Preparing);
+            var outForDeliveryCount = await baseOrdersQuery.CountAsync(o => o.Status == OrderStatus.OutForDelivery);
+            var completedCount = await baseOrdersQuery.CountAsync(o => o.Status == OrderStatus.Completed);
+
+            // 4. Aplica o filtro de status selecionado
+            var ordersQuery = baseOrdersQuery;
             if (!string.IsNullOrWhiteSpace(statusFilter) && statusFilter.ToLower() != "todos")
             {
                 var sf = statusFilter.ToLower();
@@ -248,8 +310,16 @@ namespace PizzariaMia.Controllers
                 }
             }
 
+            // 5. Paginação de 20 itens por página
+            pageSize = pageSize <= 0 ? 20 : pageSize;
+            var filteredTotalCount = await ordersQuery.CountAsync();
+            var totalPages = (int)Math.Ceiling(filteredTotalCount / (double)pageSize);
+            page = Math.Max(1, page);
+
             var orders = await ordersQuery
                 .OrderByDescending(o => o.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
             var result = orders.Select(o => new
@@ -276,7 +346,21 @@ namespace PizzariaMia.Controllers
                 }).ToList()
             });
 
-            return Ok(result);
+            return Ok(new
+            {
+                orders = result,
+                page,
+                pageSize,
+                totalCount = filteredTotalCount,
+                totalPages,
+                counts = new
+                {
+                    todos = totalCount,
+                    andamento = inProgressCount,
+                    a_caminho = outForDeliveryCount,
+                    concluidos = completedCount
+                }
+            });
         }
     }
 }

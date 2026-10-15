@@ -3,6 +3,7 @@ using PizzariaMia.DTOs.EvolutionAPI;
 using PizzariaMia.Services;
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace PizzariaMia.Controllers
 {
@@ -185,12 +186,36 @@ namespace PizzariaMia.Controllers
                          return Ok(new { success = true });
                      }
 
-                     // INTERCEPTADOR GLOBAL: Palavras-chave para destravar o bot e voltar ao menu
+                     // INTERCEPTADOR GLOBAL: Palavras-chave ou saudações após inatividade para destravar o bot
                      string txtLower = textMessage.ToLower().Trim();
                      if (txtLower == "voltar" || txtLower == "cancelar" || txtLower == "menu" || txtLower == "inicio")
                      {
                          await _botState.ClearUserStepAsync(remoteJid);
                          currentStep = OrderStep.BemVindo;
+                     }
+                     else if (currentStep == OrderStep.AtendimentoHumano)
+                     {
+                         // Se estiver em atendimento humano, verifica se o cliente mandou uma saudação para novo pedido
+                         var greetings = new[] { "oi", "ola", "olá", "bom dia", "boa tarde", "boa noite", "cardapio", "cardápio", "quero pedir", "fazer pedido", "pedir pizza", "opa", "menu", "cardápio por favor", "cardapio por favor" };
+                         bool isGreeting = greetings.Any(g => txtLower == g || txtLower.StartsWith(g + " ") || txtLower.StartsWith(g + ","));
+
+                         if (isGreeting)
+                         {
+                             // Busca mensagem anterior mais recente desta conversa
+                             var lastMsg = await _context.WhatsAppMessages
+                                 .Where(m => m.RemoteJid == remoteJid || m.SenderPhone == phoneNum)
+                                 .OrderByDescending(m => m.Timestamp)
+                                 .Skip(1) // Pula a mensagem atual recém-persistida
+                                 .FirstOrDefaultAsync();
+
+                             // Se a conversa estava parada há mais de 15 minutos, reinicia o fluxo
+                             if (lastMsg == null || (DateTime.UtcNow - lastMsg.Timestamp).TotalMinutes >= 15)
+                             {
+                                 _logger.LogInformation($"[BOT STATE] Cliente {customerName} ({phoneNum}) inativo há mais de 15 min enviou saudação. Reiniciando bot.");
+                                 await _botState.ClearUserStepAsync(remoteJid);
+                                 currentStep = OrderStep.BemVindo;
+                             }
+                         }
                      }
 
                      // 2. Máquina de Estados do Bot

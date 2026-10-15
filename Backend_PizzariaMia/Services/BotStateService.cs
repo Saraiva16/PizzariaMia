@@ -44,9 +44,9 @@ namespace PizzariaMia.Services
         {
             var cacheKey = $"BotState_{remoteJid}";
             
-            // Define o tempo máximo que o cliente pode ficar sem responder (ex: 2 horas)
+            // Define o tempo máximo de inatividade (45 minutos absolutos)
             var options = new DistributedCacheEntryOptions()
-                .SetSlidingExpiration(TimeSpan.FromHours(2));
+                .SetAbsoluteExpiration(TimeSpan.FromMinutes(45));
 
             await _cache.SetStringAsync(cacheKey, step.ToString(), options);
         }
