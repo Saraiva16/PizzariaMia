@@ -9,6 +9,7 @@ import OrdersPage from './pages/Orders/Orders';
 import TrackOrder from './pages/Orders/TrackOrder';
 import EmployeeMenu from './pages/EmployeeMenu/EmployeeMenu';
 import EmployeeCheckout from './pages/EmployeeCheckout/EmployeeCheckout';
+import EmployeeOrders from './pages/EmployeeOrders/EmployeeOrders';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -57,6 +58,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute allowedRoles={['Employee', 'Admin']}>
         <EmployeeCheckout />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/funcionario/pedidos',
+    element: (
+      <ProtectedRoute allowedRoles={['Employee', 'Admin']}>
+        <EmployeeOrders />
       </ProtectedRoute>
     ),
   },

@@ -354,11 +354,29 @@ export default function EmployeeMenu() {
 
   return (
     <div className="employee-menu-container">
-      <div className="employee-menu-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="employee-menu-header">
         <div>
           <h1 style={{ margin: 0 }}>Cardápio - Atendimento</h1>
           <span style={{ fontSize: '0.9rem', color: '#666' }}>{userName} ({userRole})</span>
         </div>
+
+        <nav className="employee-nav-tabs">
+          <button
+            type="button"
+            className="nav-tab-btn active"
+            onClick={() => navigate('/funcionario/cardapio')}
+          >
+            🍕 Novo Pedido (Cardápio)
+          </button>
+          <button
+            type="button"
+            className="nav-tab-btn"
+            onClick={() => navigate('/funcionario/pedidos')}
+          >
+            📋 Consultar Pedidos
+          </button>
+        </nav>
+
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <ThemeToggle />
           <button

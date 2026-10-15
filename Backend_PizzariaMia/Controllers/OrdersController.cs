@@ -204,5 +204,79 @@ namespace PizzariaMia.Controllers
 
             return Ok(myOrders);
         }
+
+        [HttpGet("employee-orders")]
+        [Authorize(Roles = "Employee,Admin")]
+        public async Task<IActionResult> GetEmployeeOrders([FromQuery] string? query, [FromQuery] string? statusFilter)
+        {
+            var ordersQuery = _context.Orders
+                .Include(o => o.Items)
+                    .ThenInclude(i => i.Pizza)
+                .Include(o => o.Address)
+                .Include(o => o.User)
+                .AsQueryable();
+
+            // Filtro por termo de busca (nome, telefone, endereço ou ID do pedido)
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var lowerQuery = query.Trim().ToLower();
+                ordersQuery = ordersQuery.Where(o =>
+                    (o.CustomerName != null && o.CustomerName.ToLower().Contains(lowerQuery)) ||
+                    (o.User != null && o.User.Name.ToLower().Contains(lowerQuery)) ||
+                    (o.CustomerPhone != null && o.CustomerPhone.Contains(lowerQuery)) ||
+                    (o.User != null && o.User.Phone.Contains(lowerQuery)) ||
+                    (o.Address != null && o.Address.StreetAndNumber.ToLower().Contains(lowerQuery)) ||
+                    o.Id.ToString().Contains(lowerQuery)
+                );
+            }
+
+            // Filtro por status
+            if (!string.IsNullOrWhiteSpace(statusFilter) && statusFilter.ToLower() != "todos")
+            {
+                var sf = statusFilter.ToLower();
+                if (sf == "andamento" || sf == "in_progress")
+                {
+                    ordersQuery = ordersQuery.Where(o => o.Status == OrderStatus.Pending || o.Status == OrderStatus.Preparing);
+                }
+                else if (sf == "a_caminho" || sf == "out_for_delivery")
+                {
+                    ordersQuery = ordersQuery.Where(o => o.Status == OrderStatus.OutForDelivery);
+                }
+                else if (sf == "concluidos" || sf == "completed")
+                {
+                    ordersQuery = ordersQuery.Where(o => o.Status == OrderStatus.Completed);
+                }
+            }
+
+            var orders = await ordersQuery
+                .OrderByDescending(o => o.CreatedAt)
+                .ToListAsync();
+
+            var result = orders.Select(o => new
+            {
+                id = o.Id,
+                customerName = o.CustomerName ?? o.User?.Name ?? "Cliente Balcão",
+                customerPhone = o.CustomerPhone ?? o.User?.Phone ?? "",
+                deliveryAddress = o.Address?.StreetAndNumber ?? "Retirada no Balcão",
+                addressLabel = o.Address?.Label,
+                status = o.Status.ToString(),
+                totalAmount = o.TotalAmount,
+                paymentMethod = o.PaymentMethod.ToString(),
+                createdAt = o.CreatedAt,
+                updatedAt = o.UpdatedAt,
+                items = o.Items.Select(i => new
+                {
+                    id = i.Id,
+                    pizzaId = i.PizzaId,
+                    pizzaName = i.Pizza != null ? i.Pizza.Name : $"Pizza #{i.PizzaId}",
+                    quantity = i.Quantity,
+                    unitPrice = i.UnitPrice,
+                    subTotal = i.SubTotal,
+                    notes = i.Notes
+                }).ToList()
+            });
+
+            return Ok(result);
+        }
     }
 }

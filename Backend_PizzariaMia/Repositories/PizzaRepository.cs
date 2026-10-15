@@ -12,7 +12,7 @@ namespace PizzariaMia.Repositories
 
         public async Task<IEnumerable<Pizza>> GetActivePizzasAsync()
         {
-            return await _dbSet.Include(p => p.Ingredients).Where(p => p.Active).ToListAsync();
+            return await _dbSet.Where(p => p.Active).ToListAsync();
         }
     }
 }
