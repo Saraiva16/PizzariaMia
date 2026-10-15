@@ -8,7 +8,21 @@ namespace PizzariaMia.Services
         BemVindo = 0,
         AguardandoComando = 1,
         DigitandoPedidoLivre = 2,
-        AtendimentoHumano = 3
+        AguardandoEndereco = 3,
+        AguardandoPagamento = 4,
+        AguardandoConfirmacao = 5,
+        AguardandoMenuAlteracao = 6,
+        AtendimentoHumano = 7
+    }
+
+    public class WhatsAppOrderDraft
+    {
+        public string ItemsDescription { get; set; } = string.Empty;
+        public decimal TotalAmount { get; set; } = 0;
+        public bool IsDelivery { get; set; } = false;
+        public string AddressText { get; set; } = string.Empty;
+        public string PaymentMethod { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 
     public interface IBotStateService
@@ -16,6 +30,9 @@ namespace PizzariaMia.Services
         Task<OrderStep> GetUserStepAsync(string remoteJid);
         Task SetUserStepAsync(string remoteJid, OrderStep step);
         Task ClearUserStepAsync(string remoteJid);
+        Task<WhatsAppOrderDraft?> GetOrderDraftAsync(string remoteJid);
+        Task SetOrderDraftAsync(string remoteJid, WhatsAppOrderDraft draft);
+        Task ClearOrderDraftAsync(string remoteJid);
     }
 
     public class BotStateService : IBotStateService
@@ -37,7 +54,12 @@ namespace PizzariaMia.Services
                 return OrderStep.BemVindo; // Estado inicial padrão
             }
 
-            return Enum.Parse<OrderStep>(stepString);
+            if (Enum.TryParse<OrderStep>(stepString, out var step))
+            {
+                return step;
+            }
+
+            return OrderStep.BemVindo;
         }
 
         public async Task SetUserStepAsync(string remoteJid, OrderStep step)
@@ -54,6 +76,40 @@ namespace PizzariaMia.Services
         public async Task ClearUserStepAsync(string remoteJid)
         {
             var cacheKey = $"BotState_{remoteJid}";
+            await _cache.RemoveAsync(cacheKey);
+            await ClearOrderDraftAsync(remoteJid);
+        }
+
+        public async Task<WhatsAppOrderDraft?> GetOrderDraftAsync(string remoteJid)
+        {
+            var cacheKey = $"BotDraft_{remoteJid}";
+            var json = await _cache.GetStringAsync(cacheKey);
+            if (string.IsNullOrEmpty(json)) return null;
+
+            try
+            {
+                return JsonSerializer.Deserialize<WhatsAppOrderDraft>(json);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public async Task SetOrderDraftAsync(string remoteJid, WhatsAppOrderDraft draft)
+        {
+            var cacheKey = $"BotDraft_{remoteJid}";
+            var json = JsonSerializer.Serialize(draft);
+
+            var options = new DistributedCacheEntryOptions()
+                .SetAbsoluteExpiration(TimeSpan.FromMinutes(45));
+
+            await _cache.SetStringAsync(cacheKey, json, options);
+        }
+
+        public async Task ClearOrderDraftAsync(string remoteJid)
+        {
+            var cacheKey = $"BotDraft_{remoteJid}";
             await _cache.RemoveAsync(cacheKey);
         }
     }

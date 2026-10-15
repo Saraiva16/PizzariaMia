@@ -488,13 +488,13 @@
 }
 
 [data-theme="dark"] .whatsapp-catalog-alert-box {
-  background-color: #2a1b12;
-  border-color: #ea580c;
-  color: #fdba74;
+  background-color: #22160f;
+  border-color: #6c2a13;
+  color: #ea9661;
 }
 
 [data-theme="dark"] .whatsapp-catalog-alert-box:hover {
-  background-color: #3b2518;
+  background-color: #2c1c13;
 }
 
 .client-address-row {
@@ -743,7 +743,7 @@
 }
 
 [data-theme="dark"] .orders-search-input:focus {
-  border-color: #ff4d57;
+  border-color: #8c1d24;
   background-color: #2a1f23;
 }
 
@@ -754,8 +754,8 @@
 }
 
 [data-theme="dark"] .filter-pill.active {
-  background-color: #ff4d57;
-  border-color: #ff4d57;
+  background-color: #8c1d24;
+  border-color: #a8242c;
   color: #ffffff;
 }
 
@@ -765,13 +765,13 @@
 }
 
 [data-theme="dark"] .emp-order-number {
-  background: rgba(255, 77, 87, 0.18);
-  color: #ffffff;
-  border: 1.5px solid #ff4d57;
-  box-shadow: 0 0 12px rgba(255, 77, 87, 0.3);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-  font-weight: 800;
-  letter-spacing: 0.3px;
+  background: #281d20;
+  color: #f1dadc;
+  border: 1px solid #4a3338;
+  box-shadow: none;
+  text-shadow: none;
+  font-weight: 700;
+  letter-spacing: 0.2px;
 }
 
 [data-theme="dark"] .order-timestamp {
@@ -788,35 +788,71 @@
 }
 
 [data-theme="dark"] .address-text {
-  color: #e2d7d9;
+  color: #d1c4c6;
 }
 
 [data-theme="dark"] .item-custom-notes {
-  color: #f6cb85;
+  color: #d8af6b;
 }
 
 [data-theme="dark"] .order-total-val {
-  color: #f6cb85;
+  color: #ddb87f;
 }
 
 [data-theme="dark"] .badge-pending {
-  background-color: #3b2810;
-  color: #fcd34d;
+  background-color: #261c12;
+  color: #c99a38;
+  border: 1px solid #3d2d1d;
 }
 
 [data-theme="dark"] .badge-preparing {
-  background-color: #3b1d10;
-  color: #fb923c;
+  background-color: #271711;
+  color: #d96d2b;
+  border: 1px solid #452419;
 }
 
 [data-theme="dark"] .badge-out-for-delivery {
-  background-color: #1e1b4b;
-  color: #a5b4fc;
+  background-color: #161b2b;
+  color: #6d93d6;
+  border: 1px solid #232d47;
 }
 
 [data-theme="dark"] .badge-completed {
-  background-color: #0f2e1a;
-  color: #4ade80;
+  background-color: #122116;
+  color: #4fa770;
+  border: 1px solid #1c3624;
+}
+
+/* Botões de Ação de Status no Modo Escuro */
+[data-theme="dark"] .preparing-action {
+  background-color: #852e12;
+  color: #fdeddc;
+}
+
+[data-theme="dark"] .preparing-action:hover {
+  background-color: #9a3412;
+}
+
+[data-theme="dark"] .dispatch-action {
+  background-color: #312e81;
+  color: #e0e7ff;
+}
+
+[data-theme="dark"] .dispatch-action:hover {
+  background-color: #3730a3;
+}
+
+[data-theme="dark"] .complete-action {
+  background-color: #14532d;
+  color: #dcfce7;
+}
+
+[data-theme="dark"] .complete-action:hover {
+  background-color: #166534;
+}
+
+[data-theme="dark"] .status-finished-tag {
+  color: #4fa770;
 }
 
 /* Barra de Paginação */
@@ -892,19 +928,19 @@
 }
 
 [data-theme="dark"] .clear-date-btn {
-  background-color: #451a1a;
-  color: #fca5a5;
-  border-color: #7f1d1d;
+  background-color: #331515;
+  color: #f87171;
+  border-color: #591d1d;
 }
 
 [data-theme="dark"] .clear-date-btn:hover {
-  background-color: #5c2020;
+  background-color: #451b1b;
 }
 
 [data-theme="dark"] .current-shift-indicator {
-  background-color: #142e1d;
-  color: #86efac;
-  border-color: #166534;
+  background-color: #132418;
+  color: #52a773;
+  border-color: #1b3d26;
 }
 
 [data-theme="dark"] .orders-pagination-bar {
