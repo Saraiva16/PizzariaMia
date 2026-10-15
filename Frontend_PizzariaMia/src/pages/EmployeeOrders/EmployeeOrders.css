@@ -375,6 +375,53 @@
   text-decoration: underline;
 }
 
+.whatsapp-chat-shortcut-btn {
+  background-color: #25d366;
+  color: #ffffff;
+  border: none;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.775rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.whatsapp-chat-shortcut-btn:hover {
+  background-color: #128c7e;
+  transform: translateY(-1px);
+}
+
+.whatsapp-catalog-alert-box {
+  background-color: #fff7ed;
+  border: 1px dashed #f97316;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  color: #c2410c;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.whatsapp-catalog-alert-box:hover {
+  background-color: #ffedd5;
+  border-color: #ea580c;
+}
+
+[data-theme="dark"] .whatsapp-catalog-alert-box {
+  background-color: #2a1b12;
+  border-color: #ea580c;
+  color: #fdba74;
+}
+
+[data-theme="dark"] .whatsapp-catalog-alert-box:hover {
+  background-color: #3b2518;
+}
+
 .client-address-row {
   display: flex;
   align-items: flex-start;

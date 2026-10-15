@@ -375,6 +375,13 @@ export default function EmployeeMenu() {
           >
             📋 Consultar Pedidos
           </button>
+          <button
+            type="button"
+            className="nav-tab-btn"
+            onClick={() => navigate('/funcionario/chat')}
+          >
+            💬 WhatsApp Chat
+          </button>
         </nav>
 
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>

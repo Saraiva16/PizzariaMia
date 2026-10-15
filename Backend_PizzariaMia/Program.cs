@@ -143,6 +143,21 @@ using (var scope = app.Services.CreateScope())
     }
 
     context.SaveChanges();
+
+    // Garante que a tabela WhatsAppMessages exista no PostgreSQL
+    context.Database.ExecuteSqlRaw(@"
+        CREATE TABLE IF NOT EXISTS ""WhatsAppMessages"" (
+            ""Id"" SERIAL PRIMARY KEY,
+            ""RemoteJid"" TEXT NOT NULL,
+            ""SenderPhone"" TEXT NOT NULL,
+            ""SenderName"" TEXT NOT NULL,
+            ""Text"" TEXT NOT NULL,
+            ""FromMe"" BOOLEAN NOT NULL DEFAULT FALSE,
+            ""MessageType"" TEXT NOT NULL DEFAULT 'text',
+            ""Timestamp"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+            ""CreatedAt"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+        );
+    ");
 }
 
 app.Run();

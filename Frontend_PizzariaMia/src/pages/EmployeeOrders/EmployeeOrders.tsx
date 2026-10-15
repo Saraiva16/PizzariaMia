@@ -184,6 +184,13 @@ export default function EmployeeOrders() {
           >
             📋 Consultar Pedidos
           </button>
+          <button
+            type="button"
+            className="nav-tab-btn"
+            onClick={() => navigate('/funcionario/chat')}
+          >
+            💬 WhatsApp Chat
+          </button>
         </nav>
 
         <div className="header-right-controls">
@@ -328,10 +335,32 @@ export default function EmployeeOrders() {
                             >
                               Ligar
                             </a>
+                            <button
+                              type="button"
+                              className="whatsapp-chat-shortcut-btn"
+                              onClick={() =>
+                                navigate(`/funcionario/chat?phone=${encodeURIComponent(order.customerPhone)}`)
+                              }
+                              title="Abrir conversa no WhatsApp"
+                            >
+                              💬 WhatsApp
+                            </button>
                           </div>
                         )}
                       </div>
                     </div>
+
+                    {order.items.some((i) => i.pizzaName.includes('WhatsApp')) && (
+                      <div
+                        className="whatsapp-catalog-alert-box"
+                        onClick={() =>
+                          navigate(`/funcionario/chat?phone=${encodeURIComponent(order.customerPhone)}`)
+                        }
+                        title="Clique para abrir o chat e confirmar os sabores"
+                      >
+                        <span>⚠️ Pedido vindo do Catálogo do WhatsApp. Clique aqui para falar com o cliente e confirmar os sabores!</span>
+                      </div>
+                    )}
 
                     <div className="client-address-row">
                       <span className="address-icon">📍</span>

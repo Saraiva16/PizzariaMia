@@ -10,6 +10,7 @@ import TrackOrder from './pages/Orders/TrackOrder';
 import EmployeeMenu from './pages/EmployeeMenu/EmployeeMenu';
 import EmployeeCheckout from './pages/EmployeeCheckout/EmployeeCheckout';
 import EmployeeOrders from './pages/EmployeeOrders/EmployeeOrders';
+import EmployeeChat from './pages/EmployeeChat/EmployeeChat';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -66,6 +67,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute allowedRoles={['Employee', 'Admin']}>
         <EmployeeOrders />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/funcionario/chat',
+    element: (
+      <ProtectedRoute allowedRoles={['Employee', 'Admin']}>
+        <EmployeeChat />
       </ProtectedRoute>
     ),
   },
