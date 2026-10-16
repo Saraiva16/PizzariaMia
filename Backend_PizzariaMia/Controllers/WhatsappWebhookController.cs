@@ -3,6 +3,8 @@ using PizzariaMia.DTOs.EvolutionAPI;
 using PizzariaMia.Services;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Globalization;
+using System.Text;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
@@ -170,11 +172,27 @@ namespace PizzariaMia.Controllers
                         }
                     }
 
+                    // INTERCEPTADOR GLOBAL: Pergunta sobre status do pedido em andamento
+                    var statusKeywords = new[] { "status", "onde esta meu pedido", "onde está meu pedido", "onde ta meu pedido", "meu pedido", "vai demorar", "previsao", "previsão", "cade meu pedido", "cadê meu pedido", "como esta meu pedido", "como está meu pedido", "acompanhar", "preparo" };
+                    bool isAskingStatus = statusKeywords.Any(k => txtLower == k || txtLower.Contains(k));
+
+                    if (isAskingStatus && currentStep != OrderStep.AguardandoEndereco && currentStep != OrderStep.AguardandoPagamento && currentStep != OrderStep.AguardandoConfirmacao)
+                    {
+                        await CheckOrderStatusResponseAsync(remoteJid, phoneNum, customerName);
+                        return Ok(new { success = true });
+                    }
+
                     // 2. Máquina de Estados do Bot
                     switch (currentStep)
                     {
                         case OrderStep.BemVindo:
-                            string saudacao = $"Olá, {customerName}! Bem-vindo à *Pizzaria Mia* 🍕✨\n\nComo posso te ajudar hoje?\n1️⃣ *Fazer um Pedido* 🛵\n2️⃣ *Ver o Cardápio* 📖\n3️⃣ *Falar com um Atendente* 👨‍💻\n\n_(Digite *voltar* a qualquer momento para ver este menu)_";
+                            string saudacao = $"Olá, {customerName}! Bem-vindo à *Pizzaria Mia* 🍕✨\n\n" +
+                                              $"Como posso te ajudar hoje?\n" +
+                                              $"1️⃣ *Fazer um Pedido* 🛵\n" +
+                                              $"2️⃣ *Ver o Cardápio* 📖\n" +
+                                              $"3️⃣ *Consultar Status do Pedido* 🔍\n" +
+                                              $"4️⃣ *Falar com um Atendente* 👨‍💻\n\n" +
+                                              $"_(Digite *voltar* a qualquer momento para ver este menu)_";
                             await SendBotResponseAsync(remoteJid, phoneNum, saudacao);
                             await _botState.SetUserStepAsync(remoteJid, OrderStep.AguardandoComando);
                             break;
@@ -182,8 +200,35 @@ namespace PizzariaMia.Controllers
                         case OrderStep.AguardandoComando:
                             if (textMessage == "1")
                             {
-                                await SendBotResponseAsync(remoteJid, phoneNum, "Perfeito! 🍕 Digite quais sabores de pizza e itens você deseja pedir:\nEx: *2x pizzas mussarela e 1x coca cola*");
-                                await _botState.SetUserStepAsync(remoteJid, OrderStep.DigitandoPedidoLivre);
+                                // Verifica se há último pedido concluído recente do cliente para sugerir Repetir
+                                var user = await _context.Users.FirstOrDefaultAsync(u => u.Phone == phoneNum);
+                                var lastCompletedOrder = await _context.Orders
+                                    .Include(o => o.Items).ThenInclude(i => i.Pizza)
+                                    .Include(o => o.Address)
+                                    .Where(o => (o.CustomerPhone == phoneNum || (user != null && o.UserId == user.Id)) && o.Status == Models.Enums.OrderStatus.Completed)
+                                    .OrderByDescending(o => o.CreatedAt)
+                                    .FirstOrDefaultAsync();
+
+                                if (lastCompletedOrder != null && lastCompletedOrder.Items.Any())
+                                {
+                                    string itemsSummary = string.Join("\n", lastCompletedOrder.Items.Select(i => 
+                                        !string.IsNullOrWhiteSpace(i.Notes) ? $"• {i.Quantity}x {i.Pizza?.Name ?? "Pizza"} ({i.Notes})" : $"• {i.Quantity}x {i.Pizza?.Name ?? "Pizza"}"));
+
+                                    string repeatMsg = $"Perfeito, {customerName}! 🍕\n\n" +
+                                                       $"Encontrei seu último pedido *#{lastCompletedOrder.Id}*:\n{itemsSummary}\n" +
+                                                       $"📍 Entrega: {(lastCompletedOrder.Address != null ? lastCompletedOrder.Address.StreetAndNumber : "Retirada no Balcão")}\n\n" +
+                                                       $"Deseja *Repetir* este mesmo pedido?\n" +
+                                                       $"• Digite *R* para repetir 🔁\n" +
+                                                       $"• Ou digite os novos sabores e itens que deseja pedir 🍕";
+
+                                    await SendBotResponseAsync(remoteJid, phoneNum, repeatMsg);
+                                    await _botState.SetUserStepAsync(remoteJid, OrderStep.DigitandoPedidoLivre);
+                                }
+                                else
+                                {
+                                    await SendBotResponseAsync(remoteJid, phoneNum, "Perfeito! 🍕 Digite quais sabores de pizza e itens você deseja pedir:\nEx: *2x pizzas mussarela e 1x coca cola*");
+                                    await _botState.SetUserStepAsync(remoteJid, OrderStep.DigitandoPedidoLivre);
+                                }
                             }
                             else if (textMessage == "2")
                             {
@@ -191,21 +236,59 @@ namespace PizzariaMia.Controllers
                             }
                             else if (textMessage == "3")
                             {
+                                await CheckOrderStatusResponseAsync(remoteJid, phoneNum, customerName);
+                            }
+                            else if (textMessage == "4")
+                            {
                                 await SendBotResponseAsync(remoteJid, phoneNum, "Vou te transferir para um de nossos atendentes! 👨‍🍳\nO tempo médio de resposta no momento é de *5 minutos*. Por favor, já pode ir enviando sua dúvida.");
                                 await _botState.SetUserStepAsync(remoteJid, OrderStep.AtendimentoHumano);
                             }
                             else
                             {
-                                await SendBotResponseAsync(remoteJid, phoneNum, "Desculpe, não entendi! 😅\nPor favor, digite apenas *1*, *2* ou *3*.");
+                                await SendBotResponseAsync(remoteJid, phoneNum, "Desculpe, não entendi! 😅\nPor favor, digite apenas *1*, *2*, *3* ou *4*.");
                             }
                             break;
 
                         case OrderStep.DigitandoPedidoLivre:
-                            // Cliente digitou os sabores e itens
-                            decimal estimatedTotal = await EstimateOrderTotalAsync(textMessage);
+                            string trimmedInput = textMessage.Trim();
+                            string lowerInput = trimmedInput.ToLower();
+
+                            // Se o cliente escolheu repetir o pedido anterior
+                            if (lowerInput == "r" || lowerInput == "repetir")
+                            {
+                                var usr = await _context.Users.FirstOrDefaultAsync(u => u.Phone == phoneNum);
+                                var lastCompleted = await _context.Orders
+                                    .Include(o => o.Items).ThenInclude(i => i.Pizza)
+                                    .Include(o => o.Address)
+                                    .Where(o => (o.CustomerPhone == phoneNum || (usr != null && o.UserId == usr.Id)) && o.Status == Models.Enums.OrderStatus.Completed)
+                                    .OrderByDescending(o => o.CreatedAt)
+                                    .FirstOrDefaultAsync();
+
+                                if (lastCompleted != null && lastCompleted.Items.Any())
+                                {
+                                    string itemsSummary = string.Join("\n", lastCompleted.Items.Select(i => 
+                                        !string.IsNullOrWhiteSpace(i.Notes) ? $"• {i.Quantity}x {i.Pizza?.Name ?? "Pizza"} ({i.Notes})" : $"• {i.Quantity}x {i.Pizza?.Name ?? "Pizza"}"));
+
+                                    var repeatDraft = new WhatsAppOrderDraft
+                                    {
+                                        ItemsDescription = itemsSummary,
+                                        TotalAmount = lastCompleted.TotalAmount,
+                                        IsDelivery = lastCompleted.Address != null,
+                                        AddressText = lastCompleted.Address != null ? lastCompleted.Address.StreetAndNumber : "Retirada no Balcão",
+                                        PaymentMethod = lastCompleted.PaymentMethod.ToString()
+                                    };
+
+                                    await _botState.SetOrderDraftAsync(remoteJid, repeatDraft);
+                                    await SendOrderSummaryAsync(remoteJid, phoneNum, repeatDraft);
+                                    break;
+                                }
+                            }
+
+                            // Processamento com o Parser Determinístico Inteligente
+                            var parsedOrder = await ParseOrderDetailsAsync(trimmedInput);
                             var existingDraft = await _botState.GetOrderDraftAsync(remoteJid) ?? new WhatsAppOrderDraft();
-                            existingDraft.ItemsDescription = textMessage.Trim();
-                            existingDraft.TotalAmount = estimatedTotal;
+                            existingDraft.ItemsDescription = parsedOrder.FormattedDescription;
+                            existingDraft.TotalAmount = parsedOrder.TotalAmount;
 
                             await _botState.SetOrderDraftAsync(remoteJid, existingDraft);
 
@@ -593,6 +676,211 @@ namespace PizzariaMia.Controllers
             {
                 _logger.LogWarning($"Falha ao persistir ou transmitir resposta do bot: {ex.Message}");
             }
+        }
+
+        private static string NormalizeText(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+            var normalizedString = text.Normalize(NormalizationForm.FormD);
+            var stringBuilder = new StringBuilder();
+            foreach (var c in normalizedString)
+            {
+                var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
+                if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+                {
+                    stringBuilder.Append(c);
+                }
+            }
+            return stringBuilder.ToString().Normalize(NormalizationForm.FormC).ToLower().Trim();
+        }
+
+        private async Task CheckOrderStatusResponseAsync(string remoteJid, string phoneNum, string customerName)
+        {
+            var since24h = DateTime.UtcNow.AddHours(-24);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Phone == phoneNum);
+            var lastOrder = await _context.Orders
+                .Include(o => o.Items).ThenInclude(i => i.Pizza)
+                .Include(o => o.Address)
+                .Where(o => (o.CustomerPhone == phoneNum || (user != null && o.UserId == user.Id)) && o.CreatedAt >= since24h)
+                .OrderByDescending(o => o.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (lastOrder == null)
+            {
+                await SendBotResponseAsync(remoteJid, phoneNum,
+                    $"Olá, {customerName}! 🔍 Não encontrei nenhum pedido em andamento nas últimas 24h para o seu número (*{phoneNum}*).\n\n" +
+                    $"Deseja fazer um novo pedido? Digite *1* para iniciar!");
+                return;
+            }
+
+            int elapsedMin = Math.Max(0, (int)(DateTime.UtcNow - lastOrder.CreatedAt).TotalMinutes);
+            string totalFormatado = lastOrder.TotalAmount.ToString("C");
+            string itensLista = string.Join("\n", lastOrder.Items.Select(i => 
+                !string.IsNullOrWhiteSpace(i.Notes) ? $"• {i.Quantity}x {i.Pizza?.Name ?? "Pizza"} ({i.Notes})" : $"• {i.Quantity}x {i.Pizza?.Name ?? "Pizza"}"));
+
+            string statusDesc = "";
+            switch (lastOrder.Status)
+            {
+                case Models.Enums.OrderStatus.Pending:
+                    statusDesc = $"⏳ *Situação:* Pendente / Aguardando Cozinha\n" +
+                                 $"🕒 *Realizado há:* {elapsedMin} minutos\n\n" +
+                                 $"Sua comanda já foi recebida e nossa equipe logo iniciará a produção!";
+                    break;
+
+                case Models.Enums.OrderStatus.Preparing:
+                    statusDesc = $"👨‍🍳 *Situação:* No Forno / Em Preparo! 🔥\n" +
+                                 $"🕒 *Tempo decorrido:* {elapsedMin} minutos\n\n" +
+                                 $"Nossos pizzaiolos já estão assando suas pizzas. Assim que sair para entrega você será avisado!";
+                    break;
+
+                case Models.Enums.OrderStatus.OutForDelivery:
+                    string horaSaida = lastOrder.UpdatedAt.ToLocalTime().ToString("HH:mm");
+                    string destino = lastOrder.Address != null ? lastOrder.Address.StreetAndNumber : "Retirada no balcão";
+                    statusDesc = $"🛵 *Situação:* A Caminho / Saiu para Entrega! 🎉\n" +
+                                 $"🕒 *Despachado às:* {horaSaida}\n" +
+                                 $"📍 *Destino:* {destino}\n\n" +
+                                 $"Fique atento(a), o entregador está chegando!";
+                    break;
+
+                case Models.Enums.OrderStatus.Completed:
+                    string horaEntrega = lastOrder.UpdatedAt.ToLocalTime().ToString("HH:mm");
+                    statusDesc = $"✅ *Situação:* Entregue / Concluído às {horaEntrega}! 🍕❤️\n\n" +
+                                 $"Esperamos que tenha tido uma ótima experiência! Para um novo pedido, basta digitar *1*.";
+                    break;
+
+                case Models.Enums.OrderStatus.Canceled:
+                    statusDesc = $"❌ *Situação:* Pedido Cancelado.\n\n" +
+                                 $"Caso precise de suporte, digite *4* para falar com um atendente.";
+                    break;
+
+                default:
+                    statusDesc = $"Situação atual: *{lastOrder.Status}*";
+                    break;
+            }
+
+            string resposta = $"📋 *Consulta do Pedido #{lastOrder.Id}*\n\n" +
+                              $"{statusDesc}\n\n" +
+                              $"🍕 *Itens:*\n{itensLista}\n\n" +
+                              $"💰 *Valor Total:* {totalFormatado}";
+
+            await SendBotResponseAsync(remoteJid, phoneNum, resposta);
+        }
+
+        public class ParsedOrderResult
+        {
+            public decimal TotalAmount { get; set; }
+            public string FormattedDescription { get; set; } = string.Empty;
+            public bool HasRecognizedItems { get; set; }
+        }
+
+        private async Task<ParsedOrderResult> ParseOrderDetailsAsync(string text)
+        {
+            var result = new ParsedOrderResult();
+            try
+            {
+                var pizzas = await _context.Pizzas.ToListAsync();
+                string normalizedInput = NormalizeText(text);
+                var recognizedItems = new List<string>();
+                decimal total = 0;
+
+                // 1. Detecta padrões Meio a Meio (ex: "meio calabresa meio mussarela", "1/2 frango 1/2 quatro queijos")
+                var halfRegex = new Regex(@"(?:1\/2|meio|metade)\s+(?:de\s+)?([a-z0-9\s]+?)\s+(?:e\s+|com\s+|\/\s*)?(?:1\/2|meio|metade)\s+(?:de\s+)?([a-z0-9\s]+?)(?:$|\s*,\s*|\s+e\s+|\s+1\s+|\s+2\s+)", RegexOptions.IgnoreCase);
+                var halfMatches = halfRegex.Matches(normalizedInput);
+
+                foreach (Match hm in halfMatches)
+                {
+                    string term1 = hm.Groups[1].Value.Trim();
+                    string term2 = hm.Groups[2].Value.Trim();
+
+                    var p1 = pizzas.FirstOrDefault(p => NormalizeText(p.Name).Contains(term1) || term1.Contains(NormalizeText(p.Name)));
+                    var p2 = pizzas.FirstOrDefault(p => NormalizeText(p.Name).Contains(term2) || term2.Contains(NormalizeText(p.Name)));
+
+                    if (p1 != null && p2 != null)
+                    {
+                        decimal halfPrice = Math.Max(p1.Price, p2.Price);
+                        total += halfPrice;
+                        recognizedItems.Add($"• 1x Pizza Meio {p1.Name} / Meio {p2.Name} ({halfPrice:C})");
+                        normalizedInput = normalizedInput.Replace(hm.Value, " ");
+                    }
+                }
+
+                // 2. Detecta Pizzas Inteiras e Quantidades
+                foreach (var pizza in pizzas)
+                {
+                    if (pizza.Name == "Pedido via WhatsApp") continue;
+                    string normPizzaName = NormalizeText(pizza.Name);
+
+                    if (normalizedInput.Contains(normPizzaName))
+                    {
+                        var qtyPattern = $@"(?:^|\s|,)(\d+)\s*(?:x\s*|pizzas?\s*(?:de\s*)?)?{Regex.Escape(normPizzaName)}";
+                        var qtyMatch = Regex.Match(normalizedInput, qtyPattern);
+                        int qty = 1;
+                        if (qtyMatch.Success && int.TryParse(qtyMatch.Groups[1].Value, out int parsedQty))
+                        {
+                            qty = Math.Max(1, parsedQty);
+                        }
+
+                        decimal sub = pizza.Price * qty;
+                        total += sub;
+                        recognizedItems.Add($"• {qty}x Pizza {pizza.Name} ({sub:C})");
+
+                        if (qtyMatch.Success)
+                            normalizedInput = normalizedInput.Replace(qtyMatch.Value, " ");
+                        else
+                            normalizedInput = normalizedInput.Replace(normPizzaName, " ");
+                    }
+                }
+
+                // 3. Detecta Bebidas Comuns (Refrigerantes)
+                var beverageMap = new Dictionary<string, (string Name, decimal Price)>
+                {
+                    { "coca", ("Coca-Cola 2L", 15.00m) },
+                    { "coca cola", ("Coca-Cola 2L", 15.00m) },
+                    { "guarana", ("Guaraná Antarctica 2L", 13.00m) },
+                    { "fanta", ("Fanta Laranja 2L", 13.00m) },
+                    { "agua", ("Água Mineral 500ml", 5.00m) }
+                };
+
+                foreach (var bev in beverageMap)
+                {
+                    if (normalizedInput.Contains(bev.Key))
+                    {
+                        var bevQtyPattern = $@"(?:^|\s|,)(\d+)\s*(?:x\s*)?{Regex.Escape(bev.Key)}";
+                        var bevMatch = Regex.Match(normalizedInput, bevQtyPattern);
+                        int qty = 1;
+                        if (bevMatch.Success && int.TryParse(bevMatch.Groups[1].Value, out int parsedBQty))
+                        {
+                            qty = Math.Max(1, parsedBQty);
+                        }
+
+                        decimal bevSub = bev.Value.Price * qty;
+                        total += bevSub;
+                        recognizedItems.Add($"• {qty}x {bev.Value.Name} ({bevSub:C})");
+
+                        if (bevMatch.Success)
+                            normalizedInput = normalizedInput.Replace(bevMatch.Value, " ");
+                        else
+                            normalizedInput = normalizedInput.Replace(bev.Key, " ");
+                    }
+                }
+
+                if (recognizedItems.Count > 0)
+                {
+                    result.HasRecognizedItems = true;
+                    result.TotalAmount = total;
+                    result.FormattedDescription = string.Join("\n", recognizedItems);
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"Erro no parser determinístico: {ex.Message}");
+            }
+
+            result.HasRecognizedItems = false;
+            result.TotalAmount = 0;
+            result.FormattedDescription = text.Trim();
+            return result;
         }
      }
  }
