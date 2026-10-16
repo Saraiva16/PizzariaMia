@@ -286,7 +286,11 @@ namespace PizzariaMia.Controllers
             }
 
             // 3. Contadores para as abas de status (calculados antes de filtrar por status específico)
+            var urgentThresholdUtc = DateTime.UtcNow.AddMinutes(-15);
             var totalCount = await baseOrdersQuery.CountAsync();
+            var urgentCount = await baseOrdersQuery.CountAsync(o => 
+                (o.Status == OrderStatus.Pending || o.Status == OrderStatus.Preparing) && 
+                o.CreatedAt <= urgentThresholdUtc);
             var inProgressCount = await baseOrdersQuery.CountAsync(o => o.Status == OrderStatus.Pending || o.Status == OrderStatus.Preparing);
             var outForDeliveryCount = await baseOrdersQuery.CountAsync(o => o.Status == OrderStatus.OutForDelivery);
             var completedCount = await baseOrdersQuery.CountAsync(o => o.Status == OrderStatus.Completed);
@@ -296,7 +300,13 @@ namespace PizzariaMia.Controllers
             if (!string.IsNullOrWhiteSpace(statusFilter) && statusFilter.ToLower() != "todos")
             {
                 var sf = statusFilter.ToLower();
-                if (sf == "andamento" || sf == "in_progress")
+                if (sf == "urgentes" || sf == "urgent")
+                {
+                    ordersQuery = ordersQuery.Where(o => 
+                        (o.Status == OrderStatus.Pending || o.Status == OrderStatus.Preparing) && 
+                        o.CreatedAt <= urgentThresholdUtc);
+                }
+                else if (sf == "andamento" || sf == "in_progress")
                 {
                     ordersQuery = ordersQuery.Where(o => o.Status == OrderStatus.Pending || o.Status == OrderStatus.Preparing);
                 }
@@ -356,6 +366,7 @@ namespace PizzariaMia.Controllers
                 counts = new
                 {
                     todos = totalCount,
+                    urgentes = urgentCount,
                     andamento = inProgressCount,
                     a_caminho = outForDeliveryCount,
                     concluidos = completedCount

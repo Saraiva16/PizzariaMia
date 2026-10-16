@@ -312,6 +312,59 @@
   box-shadow: 0 2px 6px rgba(237, 42, 52, 0.25);
 }
 
+.filter-pill.urgent-filter-pill {
+  border-color: #fca5a5;
+  color: #b91c1c;
+  background-color: #fff1f2;
+}
+
+.filter-pill.urgent-filter-pill:hover {
+  background-color: #fee2e2;
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
+.filter-pill.urgent-filter-pill.has-urgents {
+  animation: pulse-urgent-pill 2s infinite ease-in-out;
+}
+
+@keyframes pulse-urgent-pill {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+.filter-pill.urgent-filter-pill.active {
+  background-color: #dc2626;
+  border-color: #b91c1c;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
+}
+
+[data-theme="dark"] .filter-pill.urgent-filter-pill {
+  background-color: #3b1419;
+  border-color: #7f1d1d;
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .filter-pill.urgent-filter-pill:hover {
+  background-color: #4c1d24;
+  border-color: #991b1b;
+  color: #fecaca;
+}
+
+[data-theme="dark"] .filter-pill.urgent-filter-pill.active {
+  background-color: #ef4444;
+  border-color: #dc2626;
+  color: #ffffff;
+}
+
 /* Cards Grid */
 .orders-cards-grid {
   display: grid;

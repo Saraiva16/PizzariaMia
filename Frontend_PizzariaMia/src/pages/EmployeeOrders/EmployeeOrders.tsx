@@ -57,13 +57,14 @@ interface EmployeeOrdersResponse {
   totalPages: number;
   counts: {
     todos: number;
+    urgentes: number;
     andamento: number;
     a_caminho: number;
     concluidos: number;
   };
 }
 
-type StatusFilterType = 'todos' | 'andamento' | 'a_caminho' | 'concluidos';
+type StatusFilterType = 'todos' | 'urgentes' | 'andamento' | 'a_caminho' | 'concluidos';
 
 export default function EmployeeOrders() {
   const navigate = useNavigate();
@@ -77,6 +78,7 @@ export default function EmployeeOrders() {
   const [totalCount, setTotalCount] = useState(0);
   const [counts, setCounts] = useState({
     todos: 0,
+    urgentes: 0,
     andamento: 0,
     a_caminho: 0,
     concluidos: 0
@@ -357,6 +359,14 @@ export default function EmployeeOrders() {
               onClick={() => setStatusFilter('todos')}
             >
               Todos ({counts.todos})
+            </button>
+            <button
+              type="button"
+              className={`filter-pill urgent-filter-pill ${statusFilter === 'urgentes' ? 'active' : ''} ${counts.urgentes > 0 ? 'has-urgents' : ''}`}
+              onClick={() => setStatusFilter('urgentes')}
+              title="Filtrar pedidos com mais de 15 minutos em espera ou preparo"
+            >
+              <AlertTriangle size={14} /> Urgentes ({counts.urgentes})
             </button>
             <button
               type="button"
