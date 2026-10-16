@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { toast } from 'sonner';
@@ -86,6 +86,15 @@ export default function EmployeeOrders() {
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [orderToPrint, setOrderToPrint] = useState<EmployeeOrder | null>(null);
+  const [now, setNow] = useState(Date.now());
+
+  // Atualiza o relógio a cada 30 segundos para recalcular urgências em tempo real
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(Date.now());
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handlePrintOrder = (order: EmployeeOrder) => {
     setOrderToPrint(order);
@@ -94,15 +103,27 @@ export default function EmployeeOrders() {
     }, 150);
   };
 
-  const getElapsedMinutes = (dateString: string) => {
+  const getElapsedMinutes = useCallback((dateString: string) => {
     const created = new Date(dateString);
-    const now = new Date();
-    return Math.floor((now.getTime() - created.getTime()) / (1000 * 60));
-  };
+    return Math.floor((now - created.getTime()) / (1000 * 60));
+  }, [now]);
 
-  const isUrgentOrder = (order: EmployeeOrder) => {
+  const isUrgentOrder = useCallback((order: EmployeeOrder) => {
     return (order.status === 'Pending' || order.status === 'Preparing') && getElapsedMinutes(order.createdAt) >= 15;
-  };
+  }, [getElapsedMinutes]);
+
+  // Contagem resiliente de pedidos urgentes ativos (garante exibição mesmo antes de restart do backend)
+  const activeUrgentOrdersCount = useMemo(() => {
+    const localUrgents = orders.filter((o) =>
+      (o.status === 'Pending' || o.status === 'Preparing') && getElapsedMinutes(o.createdAt) >= 15
+    ).length;
+
+    const backendUrgents = typeof counts.urgentes === 'number' && !isNaN(counts.urgentes)
+      ? counts.urgentes
+      : 0;
+
+    return Math.max(backendUrgents, localUrgents);
+  }, [counts.urgentes, orders, getElapsedMinutes]);
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -127,7 +148,13 @@ export default function EmployeeOrders() {
         setTotalPages(response.data.totalPages || 1);
         setTotalCount(response.data.totalCount || 0);
         if (response.data.counts) {
-          setCounts(response.data.counts);
+          setCounts({
+            todos: response.data.counts.todos ?? 0,
+            urgentes: response.data.counts.urgentes ?? 0,
+            andamento: response.data.counts.andamento ?? 0,
+            a_caminho: response.data.counts.a_caminho ?? 0,
+            concluidos: response.data.counts.concluidos ?? 0
+          });
         }
       }
     } catch (error: unknown) {
@@ -137,6 +164,14 @@ export default function EmployeeOrders() {
       setLoading(false);
     }
   }, [searchQuery, statusFilter, selectedDate, page]);
+
+  // Filtra em memória caso o filtro seja urgentes
+  const displayedOrders: EmployeeOrder[] = useMemo(() => {
+    if (statusFilter === 'urgentes') {
+      return orders.filter(isUrgentOrder);
+    }
+    return orders;
+  }, [orders, statusFilter, isUrgentOrder]);
 
   // Quando busca, status ou data mudarem, reinicia na primeira página
   useEffect(() => {
@@ -362,11 +397,11 @@ export default function EmployeeOrders() {
             </button>
             <button
               type="button"
-              className={`filter-pill urgent-filter-pill ${statusFilter === 'urgentes' ? 'active' : ''} ${counts.urgentes > 0 ? 'has-urgents' : ''}`}
+              className={`filter-pill urgent-filter-pill ${statusFilter === 'urgentes' ? 'active' : ''} ${activeUrgentOrdersCount > 0 ? 'has-urgents' : ''}`}
               onClick={() => setStatusFilter('urgentes')}
               title="Filtrar pedidos com mais de 15 minutos em espera ou preparo"
             >
-              <AlertTriangle size={14} /> Urgentes ({counts.urgentes})
+              <AlertTriangle size={14} /> Urgentes ({activeUrgentOrdersCount})
             </button>
             <button
               type="button"
@@ -398,7 +433,7 @@ export default function EmployeeOrders() {
             <div className="spinner"></div>
             <p>Buscando pedidos...</p>
           </div>
-        ) : orders.length === 0 ? (
+        ) : displayedOrders.length === 0 ? (
           <div className="orders-empty-state">
             <span className="empty-icon">🍕</span>
             <h3>Nenhum pedido encontrado</h3>
@@ -415,7 +450,7 @@ export default function EmployeeOrders() {
           </div>
         ) : (
           <div className="orders-cards-grid">
-            {orders.map((order) => {
+            {displayedOrders.map((order) => {
               const formattedTime = new Date(order.createdAt).toLocaleTimeString([], {
                 hour: '2-digit',
                 minute: '2-digit'
