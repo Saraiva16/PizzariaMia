@@ -767,3 +767,111 @@
   color: #d1c2c5;
 }
 
+/* Caixa de Personalização Meio a Meio (Atendente) */
+.employee-half-box {
+  margin: 10px 0 14px 0;
+  padding: 12px 14px;
+  background: #fff8f0;
+  border: 1px dashed #f97316;
+  border-radius: 8px;
+}
+
+.employee-half-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #c2410c;
+  font-size: 0.95rem;
+  user-select: none;
+}
+
+.employee-half-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #ea580c;
+  cursor: pointer;
+}
+
+.employee-half-picker {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(249, 115, 22, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.employee-half-picker .picker-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #7c2d12;
+}
+
+.employee-half-select {
+  width: 100%;
+  max-width: 450px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #fdba74;
+  background-color: #ffffff;
+  color: #1e293b;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.employee-half-select:focus {
+  border-color: #ea580c;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
+}
+
+.half-pricing-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #166534;
+  background: #dcfce7;
+  padding: 4px 10px;
+  border-radius: 6px;
+  width: fit-content;
+  border: 1px solid #bbf7d0;
+}
+
+.half-warning-text {
+  font-size: 0.825rem;
+  color: #b45309;
+  font-weight: 500;
+}
+
+[data-theme="dark"] .employee-half-box {
+  background: #2b1a13;
+  border-color: #9a3412;
+}
+
+[data-theme="dark"] .employee-half-label {
+  color: #fdba74;
+}
+
+[data-theme="dark"] .employee-half-picker .picker-title {
+  color: #fed7aa;
+}
+
+[data-theme="dark"] .employee-half-select {
+  background-color: #1c1417;
+  border-color: #7c2d12;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .half-pricing-badge {
+  background: #14532d;
+  color: #bbf7d0;
+  border-color: #166534;
+}
+
+[data-theme="dark"] .half-warning-text {
+  color: #fde047;
+}
+

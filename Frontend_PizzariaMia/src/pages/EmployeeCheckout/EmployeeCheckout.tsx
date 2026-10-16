@@ -20,6 +20,10 @@ interface OrderItem {
   quantity: number;
   addedIngredients: Ingredient[];
   removedIngredients: Ingredient[];
+  isHalfAndHalf?: boolean;
+  secondPizzaId?: number;
+  secondPizzaName?: string;
+  secondPizzaPrice?: number;
 }
 
 export default function EmployeeCheckout() {
@@ -91,7 +95,9 @@ export default function EmployeeCheckout() {
   // Cálculos financeiros
   const subtotalPizzas = useMemo(() => {
     return orderItems.reduce((acc, item) => {
-      const basePrice = item.price || 0;
+      const basePrice = item.isHalfAndHalf && item.secondPizzaPrice
+        ? Math.max(item.price || 0, item.secondPizzaPrice)
+        : (item.price || 0);
       const extrasPrice = item.addedIngredients.reduce((sum, ing) => sum + (ing.additionalPrice || 0), 0);
       return acc + (basePrice + extrasPrice) * item.quantity;
     }, 0);
@@ -132,9 +138,12 @@ export default function EmployeeCheckout() {
         paymentMethod,
         items: orderItems.map((item) => {
           // Prepara customização textual para a cozinha
-          const addText = item.addedIngredients.map((i) => `+ ${i.name}`).join(', ');
-          const remText = item.removedIngredients.map((i) => `- Sem ${i.name}`).join(', ');
-          const customizationNotes = [addText, remText].filter(Boolean).join(' | ');
+          const halfText = item.isHalfAndHalf && item.secondPizzaName
+            ? `[MEIO A MEIO: 1/2 ${item.pizzaName} + 1/2 ${item.secondPizzaName}]`
+            : null;
+          const addText = item.addedIngredients.length > 0 ? item.addedIngredients.map((i) => `+ ${i.name}`).join(', ') : null;
+          const remText = item.removedIngredients.length > 0 ? item.removedIngredients.map((i) => `- Sem ${i.name}`).join(', ') : null;
+          const customizationNotes = [halfText, addText, remText].filter(Boolean).join(' | ');
 
           return {
             pizzaId: item.pizzaId,
@@ -292,7 +301,26 @@ export default function EmployeeCheckout() {
                   <div className="order-item-main-row">
                     <div className="order-item-title-wrapper">
                       <span className="item-qty-badge">{item.quantity}x</span>
-                      <strong className="item-title">{item.pizzaName || `Pizza #${item.pizzaId}`}</strong>
+                      <div>
+                        <strong className="item-title">
+                          {item.isHalfAndHalf && item.secondPizzaName
+                            ? `1/2 ${item.pizzaName} + 1/2 ${item.secondPizzaName}`
+                            : (item.pizzaName || `Pizza #${item.pizzaId}`)}
+                        </strong>
+                        {item.isHalfAndHalf && (
+                          <span style={{
+                            marginLeft: '8px',
+                            fontSize: '0.75rem',
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            background: '#ffedd5',
+                            color: '#c2410c',
+                            fontWeight: 600
+                          }}>
+                            🍕 Meio a Meio
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <span className="item-price-tag">R$ {lineTotal.toFixed(2)}</span>
                   </div>

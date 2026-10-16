@@ -32,6 +32,10 @@ interface OrderItem {
   quantity: number;
   addedIngredients: Ingredient[];
   removedIngredients: Ingredient[];
+  isHalfAndHalf?: boolean;
+  secondPizzaId?: number;
+  secondPizzaName?: string;
+  secondPizzaPrice?: number;
 }
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
@@ -339,6 +343,75 @@ export default function EmployeeMenu() {
     });
   };
 
+  const toggleVariationHalfAndHalf = (
+    pizzaId: number,
+    variationId: string,
+    enabled: boolean
+  ) => {
+    setPizzaVariations((prev) => {
+      const list = prev[pizzaId] || [];
+      const currentPizza = pizzas.find((p) => p.id === pizzaId);
+      const originalPrice = currentPizza ? currentPizza.price : 0;
+
+      const updated = list.map((v) => {
+        if (v.id !== variationId) return v;
+        if (!enabled) {
+          return {
+            ...v,
+            isHalfAndHalf: false,
+            secondPizzaId: undefined,
+            secondPizzaName: undefined,
+            secondPizzaPrice: undefined,
+            price: originalPrice
+          };
+        }
+        return {
+          ...v,
+          isHalfAndHalf: true
+        };
+      });
+      return { ...prev, [pizzaId]: updated };
+    });
+  };
+
+  const setVariationSecondPizza = (
+    pizzaId: number,
+    variationId: string,
+    secondPizza: Pizza | null
+  ) => {
+    setPizzaVariations((prev) => {
+      const list = prev[pizzaId] || [];
+      const currentPizza = pizzas.find((p) => p.id === pizzaId);
+      const originalPrice = currentPizza ? currentPizza.price : 0;
+
+      const updated = list.map((v) => {
+        if (v.id !== variationId) return v;
+        if (!secondPizza) {
+          return {
+            ...v,
+            secondPizzaId: undefined,
+            secondPizzaName: undefined,
+            secondPizzaPrice: undefined,
+            price: originalPrice
+          };
+        }
+
+        // Maior valor entre os dois sabores
+        const calculatedPrice = Math.max(originalPrice, secondPizza.price);
+
+        return {
+          ...v,
+          secondPizzaId: secondPizza.id,
+          secondPizzaName: secondPizza.name,
+          secondPizzaPrice: secondPizza.price,
+          price: calculatedPrice
+        };
+      });
+
+      return { ...prev, [pizzaId]: updated };
+    });
+  };
+
   const totalQuantity = useMemo(() => {
     return Object.values(pizzaVariations)
       .flat()
@@ -351,6 +424,13 @@ export default function EmployeeMenu() {
       toast.error('Selecione pelo menos uma pizza para o checkout.');
       return;
     }
+
+    const incompleteHalf = allItems.find((i) => i.isHalfAndHalf && !i.secondPizzaId);
+    if (incompleteHalf) {
+      toast.error(`Por favor, selecione o 2º sabor da pizza meio a meio (${incompleteHalf.pizzaName}).`);
+      return;
+    }
+
     // Salva no localStorage para a tela de checkout
     localStorage.setItem('employeeOrderItems', JSON.stringify(allItems));
     navigate('/funcionario/checkout');
@@ -741,6 +821,55 @@ export default function EmployeeMenu() {
                               </button>
                             )}
                           </div>
+                        </div>
+
+                        {/* Seção Meio a Meio */}
+                        <div className="employee-half-box">
+                          <label className="employee-half-label">
+                            <input
+                              type="checkbox"
+                              checked={!!variation.isHalfAndHalf}
+                              onChange={(e) =>
+                                toggleVariationHalfAndHalf(pizza.id, variation.id, e.target.checked)
+                              }
+                            />
+                            <span>🍕 Dividir Pizza (Meio a Meio - 2 Sabores)</span>
+                          </label>
+
+                          {variation.isHalfAndHalf && (
+                            <div className="employee-half-picker">
+                              <label className="picker-title">Selecione o 2º sabor:</label>
+                              <select
+                                className="employee-half-select"
+                                value={variation.secondPizzaId || ''}
+                                onChange={(e) => {
+                                  const selectedId = Number(e.target.value);
+                                  const second = pizzas.find((p) => p.id === selectedId) || null;
+                                  setVariationSecondPizza(pizza.id, variation.id, second);
+                                }}
+                              >
+                                <option value="">-- Escolha o segundo sabor --</option>
+                                {pizzas
+                                  .filter((p) => p.id !== pizza.id)
+                                  .map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                      1/2 {p.name} - R$ {p.price.toFixed(2)}
+                                    </option>
+                                  ))}
+                              </select>
+
+                              {variation.secondPizzaId ? (
+                                <div className="half-pricing-badge">
+                                  <span>Preço cobrado (maior valor): </span>
+                                  <strong>R$ {variation.price.toFixed(2)}</strong>
+                                </div>
+                              ) : (
+                                <span className="half-warning-text">
+                                  ⚠️ Selecione o 2º sabor para calcular o valor da pizza
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         <div className="ingredient-groups">
