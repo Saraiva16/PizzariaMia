@@ -35,7 +35,7 @@ interface OrderItem {
 }
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-const CATEGORIES = ['Todas', 'Tradicionais', 'Especiais', 'Doces'];
+const CATEGORIES = ['Todas', 'Tradicionais', 'Especiais', 'Esfihas', 'Doces'];
 
 const DEFAULT_REMOVABLE_INGREDIENTS: Ingredient[] = [
   { id: 101, name: 'Cebola', additionalPrice: 0 },
@@ -105,6 +105,40 @@ const DEFAULT_PIZZAS: Pizza[] = [
     ingredients: [
       { id: 1, name: 'Bacon Extra', additionalPrice: 5.00 }
     ]
+  },
+  {
+    id: 10,
+    name: 'Esfiha de Carne Artesanal',
+    price: 8.90,
+    category: 'Esfihas',
+    badge: 'Mais Pedida',
+    ingredients: [
+      { id: 3, name: 'Cebola', additionalPrice: 0 }
+    ]
+  },
+  {
+    id: 11,
+    name: 'Esfiha de Frango com Catupiry',
+    price: 9.50,
+    category: 'Esfihas',
+    ingredients: [
+      { id: 2, name: 'Catupiry Extra', additionalPrice: 2.00 }
+    ]
+  },
+  {
+    id: 12,
+    name: 'Esfiha de Queijo & Orégano',
+    price: 8.90,
+    category: 'Esfihas',
+    ingredients: []
+  },
+  {
+    id: 13,
+    name: 'Esfiha de Nutella com Morango',
+    price: 11.90,
+    category: 'Esfihas',
+    badge: 'Sobremesa',
+    ingredients: []
   },
   {
     id: 7,

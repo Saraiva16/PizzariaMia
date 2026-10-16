@@ -46,6 +46,46 @@ const MOCKED_PIZZAS = [
     imageUrl: 'https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?auto=format&fit=crop&w=800&q=80',
     badge: 'Vegetariana',
     category: 'Especiais'
+  },
+  {
+    id: 201,
+    name: 'Esfiha de Carne Clássica',
+    slices: 1,
+    description: 'Massa artesanal fininha e recheio suculento de carne moída de primeira temperada com tomates, cebola e especiarias árabes.',
+    price: 6.50,
+    imageUrl: 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&w=800&q=80',
+    badge: 'Artesanal',
+    category: 'Esfihas'
+  },
+  {
+    id: 202,
+    name: 'Esfiha de Queijo & Ervas',
+    slices: 1,
+    description: 'Generosa camada de queijo minas padrão derretido com toque aromático de orégano fresco e azeite.',
+    price: 7.00,
+    imageUrl: 'https://images.unsplash.com/photo-1588315029754-2dd089d39a1a?auto=format&fit=crop&w=800&q=80',
+    badge: 'Forno a Lenha',
+    category: 'Esfihas'
+  },
+  {
+    id: 203,
+    name: 'Esfiha de Frango com Catupiry',
+    slices: 1,
+    description: 'Peito de frango refogado e desfiado com requeijão Catupiry legítimo gratinado.',
+    price: 7.50,
+    imageUrl: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80',
+    badge: 'Recheada',
+    category: 'Esfihas'
+  },
+  {
+    id: 204,
+    name: 'Esfiha Doce de Nutella com Morango',
+    slices: 1,
+    description: 'Creme de avelã Nutella genuíno coberto com morangos frescos fatiados.',
+    price: 9.50,
+    imageUrl: 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?auto=format&fit=crop&w=800&q=80',
+    badge: 'Sobremesa',
+    category: 'Esfihas'
   }
 ];
 
@@ -55,7 +95,7 @@ export default function MenuPage() {
   const { totalItems } = useCart();
   const navigate = useNavigate();
 
-  const filters = ['Todas', 'Tradicionais', 'Especiais', 'Doces'];
+  const filters = ['Todas', 'Tradicionais', 'Especiais', 'Esfihas'];
 
   // Group pizzas by category
   const groupedPizzas = MOCKED_PIZZAS.reduce((acc, pizza) => {
@@ -171,6 +211,7 @@ export default function MenuPage() {
       {selectedPizza && (
         <PizzaModal 
           pizza={selectedPizza} 
+          allPizzas={MOCKED_PIZZAS}
           onClose={() => setSelectedPizza(null)} 
         />
       )}

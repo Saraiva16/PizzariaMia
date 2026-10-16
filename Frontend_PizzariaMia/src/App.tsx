@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './App.css';
 import Layout from './shared/Layout/Layout';
-import MenuPage from './pages/MenuPage';
+import Menu from './pages/Menu/Menu';
 import PizzaForm from './shared/PizzaForm/PizzaForm';
 
 function App() {
@@ -10,7 +10,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<MenuPage />} />
+          <Route index element={<Menu />} />
           <Route path="cadastrar" element={
             <div className="menu-container">
               <div className="menu-header">
