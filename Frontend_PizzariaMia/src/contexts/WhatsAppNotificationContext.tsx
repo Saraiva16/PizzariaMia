@@ -8,6 +8,7 @@ interface WhatsAppNotificationContextData {
   unreadConversationsCount: number;
   fetchUnreadCount: () => Promise<void>;
   markConversationAsRead: (phone: string) => Promise<void>;
+  clearActiveToast: () => void;
 }
 
 const WhatsAppNotificationContext = createContext<WhatsAppNotificationContextData>({} as WhatsAppNotificationContextData);
@@ -28,6 +29,10 @@ export const WhatsAppNotificationProvider: React.FC<{ children: React.ReactNode 
   const [unreadConversationsCount, setUnreadConversationsCount] = useState<number>(0);
   const [activeToast, setActiveToast] = useState<WhatsAppToastData | null>(null);
   const connectionRef = useRef<signalR.HubConnection | null>(null);
+
+  const clearActiveToast = useCallback(() => {
+    setActiveToast(null);
+  }, []);
 
   // Verifica se o usuário autenticado atual é Funcionário ou Admin
   const isEmployeeUser = useCallback(() => {
@@ -95,20 +100,25 @@ export const WhatsAppNotificationProvider: React.FC<{ children: React.ReactNode 
     connection.on('NewWhatsAppMessage', (msg: IncomingSignalRMessage) => {
       // Se a mensagem veio do cliente (não é do bot nem de atendente)
       if (!msg.fromMe) {
-        // 1. Toca o som cristalino (protegido contra rajadas por throttle de 1.5s)
-        playWhatsAppNotificationSound();
+        const isChatRoute = window.location.pathname.toLowerCase().startsWith('/funcionario/chat');
 
-        // 2. Exibe o toast no canto inferior direito estilo Steam
-        const toastItem: WhatsAppToastData = {
-          id: `${msg.id}-${Date.now()}`,
-          senderPhone: msg.senderPhone || msg.remoteJid.split('@')[0],
-          senderName: msg.senderName || 'Cliente',
-          text: msg.text || 'Nova mensagem recebida',
-          timestamp: msg.timestamp || new Date().toISOString()
-        };
-        setActiveToast(toastItem);
+        // Em /funcionario/chat, não emite som e não exibe Toast flutuante
+        if (!isChatRoute) {
+          // 1. Toca o som cristalino (protegido contra rajadas por throttle de 1.5s)
+          playWhatsAppNotificationSound();
 
-        // 3. Atualiza o contador de conversas não lidas
+          // 2. Exibe o toast no canto inferior direito estilo Steam
+          const toastItem: WhatsAppToastData = {
+            id: `${msg.id}-${Date.now()}`,
+            senderPhone: msg.senderPhone || msg.remoteJid.split('@')[0],
+            senderName: msg.senderName || 'Cliente',
+            text: msg.text || 'Nova mensagem recebida',
+            timestamp: msg.timestamp || new Date().toISOString()
+          };
+          setActiveToast(toastItem);
+        }
+
+        // 3. Atualiza o contador de conversas não lidas em segundo plano
         fetchUnreadCount();
       }
     });
@@ -138,16 +148,19 @@ export const WhatsAppNotificationProvider: React.FC<{ children: React.ReactNode 
       value={{
         unreadConversationsCount,
         fetchUnreadCount,
-        markConversationAsRead
+        markConversationAsRead,
+        clearActiveToast
       }}
     >
       {children}
-      {/* Toast flutuante no canto inferior direito */}
-      <WhatsAppToast
-        toast={activeToast}
-        onClose={() => setActiveToast(null)}
-        onOpenChat={handleOpenChat}
-      />
+      {/* Toast flutuante no canto inferior direito (suprimido na rota de chat) */}
+      {!window.location.pathname.toLowerCase().startsWith('/funcionario/chat') && (
+        <WhatsAppToast
+          toast={activeToast}
+          onClose={() => setActiveToast(null)}
+          onOpenChat={handleOpenChat}
+        />
+      )}
     </WhatsAppNotificationContext.Provider>
   );
 };

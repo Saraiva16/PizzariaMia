@@ -15,6 +15,7 @@ interface ChatConversation {
   lastMessageTime: string;
   lastMessageFromMe: boolean;
   unread: boolean;
+  unreadCount?: number;
   activeOrderId?: number;
   activeOrderStatus?: string;
   activeOrderTotal?: number;
@@ -35,7 +36,11 @@ export default function EmployeeChat() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const targetPhoneParam = searchParams.get('phone');
-  const { unreadConversationsCount, markConversationAsRead } = useWhatsAppNotification();
+  const { unreadConversationsCount, markConversationAsRead, clearActiveToast } = useWhatsAppNotification();
+
+  useEffect(() => {
+    clearActiveToast();
+  }, [clearActiveToast]);
 
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<ChatConversation | null>(null);
@@ -113,10 +118,10 @@ export default function EmployeeChat() {
   useEffect(() => {
     if (selectedConversation) {
       fetchMessages(selectedConversation.phone);
-      if (selectedConversation.unread) {
+      if (selectedConversation.unread || (selectedConversation.unreadCount && selectedConversation.unreadCount > 0)) {
         markConversationAsRead(selectedConversation.phone);
         setConversations((prev) =>
-          prev.map((c) => (c.phone === selectedConversation.phone ? { ...c, unread: false } : c))
+          prev.map((c) => (c.phone === selectedConversation.phone ? { ...c, unread: false, unreadCount: 0 } : c))
         );
       }
     }
@@ -155,23 +160,35 @@ export default function EmployeeChat() {
           return [...prev, newMsg];
         });
         setTimeout(scrollToBottom, 50);
+
+        if (!newMsg.fromMe) {
+          markConversationAsRead(msgPhone);
+        }
       }
 
       // Atualiza ou reposiciona a conversa na lista lateral
       setConversations((prev) => {
         const existingIndex = prev.findIndex((c) => normalize(c.phone) === msgPhone);
         const timeFormatted = new Date(newMsg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const isCurrentOpen = currentSelected && normalize(currentSelected.phone) === msgPhone;
         
         let updatedConv: ChatConversation;
         if (existingIndex >= 0) {
+          const prevConv = prev[existingIndex];
+          const newUnreadCount = isCurrentOpen 
+            ? 0 
+            : (newMsg.fromMe ? (prevConv.unreadCount || 0) : (prevConv.unreadCount || 0) + 1);
+
           updatedConv = {
-            ...prev[existingIndex],
+            ...prevConv,
             lastMessage: newMsg.text,
             lastMessageTime: timeFormatted,
             lastMessageFromMe: newMsg.fromMe,
-            unread: currentSelected && normalize(currentSelected.phone) === msgPhone ? false : true
+            unread: newUnreadCount > 0,
+            unreadCount: newUnreadCount
           };
         } else {
+          const isUnread = !isCurrentOpen && !newMsg.fromMe;
           updatedConv = {
             remoteJid: newMsg.remoteJid,
             phone: msgPhone,
@@ -179,7 +196,8 @@ export default function EmployeeChat() {
             lastMessage: newMsg.text,
             lastMessageTime: timeFormatted,
             lastMessageFromMe: newMsg.fromMe,
-            unread: true
+            unread: isUnread,
+            unreadCount: isUnread ? 1 : 0
           };
         }
 
@@ -188,12 +206,27 @@ export default function EmployeeChat() {
       });
     });
 
+    // Sincroniza quando qualquer conversa for marcada como lida pelo backend
+    connection.on('WhatsAppUnreadCountUpdated', (data: { count: number; phone: string }) => {
+      if (data?.phone) {
+        const cleanPhone = data.phone.replace(/\D/g, '');
+        setConversations((prev) =>
+          prev.map((c) => {
+            if (c.phone.replace(/\D/g, '') === cleanPhone) {
+              return { ...c, unread: false, unreadCount: 0 };
+            }
+            return c;
+          })
+        );
+      }
+    });
+
     return () => {
       if (connection.state === signalR.HubConnectionState.Connected) {
         connection.stop();
       }
     };
-  }, []);
+  }, [markConversationAsRead]);
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -368,11 +401,21 @@ export default function EmployeeChat() {
                           {conv.lastMessageFromMe && <span className="double-check">✓✓ </span>}
                           {conv.lastMessage}
                         </p>
-                        {conv.activeOrderId && (
-                          <span className="active-order-pill" title="Pedido em andamento">
-                            🍕 #{conv.activeOrderId}
-                          </span>
-                        )}
+                        <div className="conversation-item-badges">
+                          {conv.activeOrderId && (
+                            <span className="active-order-pill" title="Pedido em andamento">
+                              🍕 #{conv.activeOrderId}
+                            </span>
+                          )}
+                          {!isSelected && (conv.unreadCount ?? (conv.unread ? 1 : 0)) > 0 && (
+                            <span
+                              className="conversation-unread-badge"
+                              title={`${conv.unreadCount || 1} mensagem(ns) não lida(s)`}
+                            >
+                              {conv.unreadCount || 1}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

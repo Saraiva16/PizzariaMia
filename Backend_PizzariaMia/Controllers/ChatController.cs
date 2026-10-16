@@ -126,6 +126,7 @@ namespace PizzariaMia.Controllers
                         lastMessageTime = latest.Timestamp,
                         lastMessageFromMe = latest.FromMe,
                         unread = g.Any(m => !m.FromMe && !m.IsRead),
+                        unreadCount = g.Count(m => !m.FromMe && !m.IsRead),
                         activeOrderId = latestOrder?.Id,
                         activeOrderStatus = latestOrder?.Status.ToString(),
                         activeOrderTotal = latestOrder?.TotalAmount
