@@ -963,3 +963,253 @@
   color: #e9edef;
 }
 
+/* ========================================================
+   Urgência de Pedidos (> 15 min em andamento)
+   ======================================================== */
+.order-number-urgency-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.employee-order-card.urgent-order {
+  border: 2px solid #ef4444;
+  box-shadow: 0 0 0 1px #ef4444, 0 4px 14px rgba(239, 68, 68, 0.15);
+  position: relative;
+}
+
+.order-urgent-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #f87171;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  animation: pulseUrgentOrder 2s infinite ease-in-out;
+}
+
+@keyframes pulseUrgentOrder {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(239, 68, 68, 0);
+  }
+}
+
+.timestamp-clock-icon {
+  margin-right: 2px;
+  vertical-align: -1px;
+}
+
+[data-theme="dark"] .employee-order-card.urgent-order {
+  border-color: #ef4444;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
+}
+
+[data-theme="dark"] .order-urgent-badge {
+  background-color: #3b1215;
+  color: #fca5a5;
+  border-color: #7f1d1d;
+}
+
+/* ========================================================
+   Botão de Impressão de Comanda no Card
+   ======================================================== */
+.emp-order-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.order-print-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: var(--color-surface-hover, #f8fafc);
+  border: 1px solid var(--color-border, #cbd5e1);
+  color: var(--color-text, #1e293b);
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.order-print-btn:hover {
+  background-color: #e2e8f0;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+}
+
+[data-theme="dark"] .order-print-btn {
+  background-color: #272730;
+  border-color: #3f3f4e;
+  color: #e9edef;
+}
+
+[data-theme="dark"] .order-print-btn:hover {
+  background-color: #383844;
+  border-color: #555566;
+}
+
+/* ========================================================
+   Comanda Térmica Otimizada para Impressão (80mm / 58mm)
+   ======================================================== */
+.thermal-receipt-container {
+  display: none; /* Oculto na tela convencional */
+}
+
+@media print {
+  /* Oculta tudo que não for o recibo térmico */
+  body * {
+    visibility: hidden;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .employee-orders-container,
+  .employee-orders-header,
+  .employee-orders-content,
+  .orders-search-filters-bar,
+  .orders-cards-grid,
+  .orders-pagination-bar {
+    display: none !important;
+  }
+
+  #thermal-receipt,
+  #thermal-receipt * {
+    visibility: visible !important;
+  }
+
+  #thermal-receipt {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    max-width: 80mm;
+    padding: 4mm 6mm;
+    margin: 0;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    line-height: 1.3;
+    color: #000000;
+    background-color: #ffffff;
+    box-sizing: border-box;
+  }
+
+  .receipt-header {
+    text-align: center;
+    margin-bottom: 4px;
+  }
+
+  .receipt-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 1px;
+  }
+
+  .receipt-subtitle {
+    margin: 2px 0 0 0;
+    font-size: 11px;
+  }
+
+  .receipt-divider {
+    margin: 4px 0;
+    font-family: monospace;
+    font-size: 11px;
+    letter-spacing: -1px;
+    text-align: center;
+  }
+
+  .receipt-meta {
+    font-size: 11px;
+    line-height: 1.3;
+    text-align: left;
+  }
+
+  .receipt-customer {
+    font-size: 11px;
+    line-height: 1.3;
+    margin-bottom: 4px;
+  }
+
+  .receipt-address {
+    margin-top: 2px;
+    font-weight: bold;
+  }
+
+  .receipt-items {
+    font-size: 11px;
+  }
+
+  .receipt-items-header {
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    font-size: 11px;
+  }
+
+  .receipt-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 4px;
+  }
+
+  .receipt-item-main {
+    flex: 1;
+    padding-right: 6px;
+  }
+
+  .receipt-item-notes {
+    font-size: 10px;
+    font-style: italic;
+    padding-left: 8px;
+  }
+
+  .receipt-item-price {
+    font-weight: bold;
+    white-space: nowrap;
+  }
+
+  .receipt-totals {
+    font-size: 12px;
+  }
+
+  .receipt-total-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    font-weight: 900;
+    margin: 4px 0;
+  }
+
+  .receipt-payment-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+  }
+
+  .receipt-footer {
+    text-align: center;
+    font-size: 10px;
+    margin-top: 6px;
+    line-height: 1.25;
+  }
+}
+
+

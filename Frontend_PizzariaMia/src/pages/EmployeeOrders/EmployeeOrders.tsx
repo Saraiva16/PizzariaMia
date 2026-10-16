@@ -4,6 +4,25 @@ import api from '../../services/api';
 import { toast } from 'sonner';
 import { ThemeToggle } from '../../components/ThemeToggle/ThemeToggle';
 import { useWhatsAppNotification } from '../../contexts/WhatsAppNotificationContext';
+import {
+  Search,
+  X,
+  Calendar,
+  RefreshCw,
+  Printer,
+  Clock,
+  AlertTriangle,
+  MapPin,
+  Phone,
+  User,
+  CheckCircle2,
+  Flame,
+  Truck,
+  Pizza,
+  ClipboardList,
+  MessageSquare,
+  LogOut
+} from 'lucide-react';
 import './EmployeeOrders.css';
 
 interface OrderItemDetail {
@@ -64,6 +83,24 @@ export default function EmployeeOrders() {
   });
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [orderToPrint, setOrderToPrint] = useState<EmployeeOrder | null>(null);
+
+  const handlePrintOrder = (order: EmployeeOrder) => {
+    setOrderToPrint(order);
+    setTimeout(() => {
+      window.print();
+    }, 150);
+  };
+
+  const getElapsedMinutes = (dateString: string) => {
+    const created = new Date(dateString);
+    const now = new Date();
+    return Math.floor((now.getTime() - created.getTime()) / (1000 * 60));
+  };
+
+  const isUrgentOrder = (order: EmployeeOrder) => {
+    return (order.status === 'Pending' || order.status === 'Preparing') && getElapsedMinutes(order.createdAt) >= 15;
+  };
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -210,21 +247,21 @@ export default function EmployeeOrders() {
             className="nav-tab-btn"
             onClick={() => navigate('/funcionario/cardapio')}
           >
-            🍕 Novo Pedido (Cardápio)
+            <Pizza size={16} /> Novo Pedido (Cardápio)
           </button>
           <button
             type="button"
             className="nav-tab-btn active"
             onClick={() => navigate('/funcionario/pedidos')}
           >
-            📋 Consultar Pedidos
+            <ClipboardList size={16} /> Consultar Pedidos
           </button>
           <button
             type="button"
             className="nav-tab-btn"
             onClick={() => navigate('/funcionario/chat')}
           >
-            💬 WhatsApp Chat
+            <MessageSquare size={16} /> WhatsApp Chat
             {unreadConversationsCount > 0 && (
               <span className="nav-tab-unread-badge" title={`${unreadConversationsCount} conversa(s) com mensagens não abertas`}>
                 {unreadConversationsCount}
@@ -236,7 +273,7 @@ export default function EmployeeOrders() {
         <div className="header-right-controls">
           <ThemeToggle />
           <button type="button" className="logout-header-btn" onClick={handleLogout}>
-            Sair
+            <LogOut size={14} /> Sair
           </button>
         </div>
       </header>
@@ -254,7 +291,7 @@ export default function EmployeeOrders() {
             onClick={fetchOrders}
             title="Atualizar lista"
           >
-            🔄 Atualizar
+            <RefreshCw size={15} /> Atualizar
           </button>
         </div>
 
@@ -262,7 +299,7 @@ export default function EmployeeOrders() {
         <section className="orders-search-filters-bar">
           <div className="orders-toolbar-row">
             <div className="search-input-wrapper">
-              <span className="search-icon">🔍</span>
+              <Search size={16} className="search-icon" />
               <input
                 type="text"
                 className="orders-search-input"
@@ -278,7 +315,7 @@ export default function EmployeeOrders() {
                   onClick={() => setSearchQuery('')}
                   title="Limpar busca"
                 >
-                  &times;
+                  <X size={15} />
                 </button>
               )}
             </div>
@@ -286,7 +323,7 @@ export default function EmployeeOrders() {
             {/* Seletor de Data / Calendário */}
             <div className="orders-calendar-filter">
               <label htmlFor="orders-calendar-input" className="calendar-label" title="Filtrar por data específica">
-                📅 <span>Data:</span>
+                <Calendar size={15} /> <span>Data:</span>
               </label>
               <input
                 id="orders-calendar-input"
@@ -303,7 +340,7 @@ export default function EmployeeOrders() {
                   onClick={() => setSelectedDate('')}
                   title="Voltar ao turno operacional atual"
                 >
-                  ✕ Voltar ao Turno Atual
+                  <X size={13} /> Voltar ao Turno Atual
                 </button>
               ) : (
                 <span className="current-shift-indicator" title="Exibindo pedidos do turno operacional atual (reset automático às 03:00)">
@@ -326,21 +363,21 @@ export default function EmployeeOrders() {
               className={`filter-pill ${statusFilter === 'andamento' ? 'active' : ''}`}
               onClick={() => setStatusFilter('andamento')}
             >
-              🔥 Em Andamento ({counts.andamento})
+              <Flame size={14} /> Em Andamento ({counts.andamento})
             </button>
             <button
               type="button"
               className={`filter-pill ${statusFilter === 'a_caminho' ? 'active' : ''}`}
               onClick={() => setStatusFilter('a_caminho')}
             >
-              🛵 A Caminho ({counts.a_caminho})
+              <Truck size={14} /> A Caminho ({counts.a_caminho})
             </button>
             <button
               type="button"
               className={`filter-pill ${statusFilter === 'concluidos' ? 'active' : ''}`}
               onClick={() => setStatusFilter('concluidos')}
             >
-              ✅ Concluídos ({counts.concluidos})
+              <CheckCircle2 size={14} /> Concluídos ({counts.concluidos})
             </button>
           </div>
         </section>
@@ -376,29 +413,50 @@ export default function EmployeeOrders() {
               const isUpdating = updatingId === order.id;
 
               return (
-                <div key={order.id} className="employee-order-card">
+                <div key={order.id} className={`employee-order-card ${isUrgentOrder(order) ? 'urgent-order' : ''}`}>
                   {/* Topo do Card */}
                   <div className="emp-order-card-header">
                     <div className="order-id-time">
-                      <span className="emp-order-number">Pedido #{order.id}</span>
+                      <div className="order-number-urgency-row">
+                        <span className="emp-order-number">Pedido #{order.id}</span>
+                        {isUrgentOrder(order) && (
+                          <span className="order-urgent-badge" title="Pedido em andamento há mais de 15 minutos!">
+                            <AlertTriangle size={13} /> Urgente (+{getElapsedMinutes(order.createdAt)}m)
+                          </span>
+                        )}
+                      </div>
                       <span className="order-timestamp">
-                        {formattedTime} • {formatElapsedTime(order.createdAt)}
+                        <Clock size={12} className="timestamp-clock-icon" /> {formattedTime} • {formatElapsedTime(order.createdAt)}
                       </span>
                     </div>
-                    <span className={`order-status-badge ${getStatusBadgeClass(order.status)}`}>
-                      {formatStatusLabel(order.status)}
-                    </span>
+
+                    <div className="emp-order-header-actions">
+                      <button
+                        type="button"
+                        className="order-print-btn"
+                        onClick={() => handlePrintOrder(order)}
+                        title="Imprimir Comanda Térmica (80mm)"
+                      >
+                        <Printer size={14} />
+                        <span>Imprimir</span>
+                      </button>
+                      <span className={`order-status-badge ${getStatusBadgeClass(order.status)}`}>
+                        {formatStatusLabel(order.status)}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Informações do Cliente */}
                   <div className="order-client-section">
                     <div className="client-data-row">
-                      <span className="client-avatar">👤</span>
+                      <span className="client-avatar">
+                        <User size={16} />
+                      </span>
                       <div>
                         <strong className="client-name">{order.customerName}</strong>
                         {order.customerPhone && (
                           <div className="client-phone-row">
-                            <span>📞 {order.customerPhone}</span>
+                            <span><Phone size={13} /> {order.customerPhone}</span>
                             <button
                               type="button"
                               className="whatsapp-chat-shortcut-btn"
@@ -407,7 +465,7 @@ export default function EmployeeOrders() {
                               }
                               title="Abrir conversa no WhatsApp"
                             >
-                              💬 WhatsApp
+                              <MessageSquare size={13} /> WhatsApp
                             </button>
                           </div>
                         )}
@@ -422,12 +480,15 @@ export default function EmployeeOrders() {
                         }
                         title="Clique para abrir o chat e confirmar os sabores"
                       >
-                        <span>⚠️ Pedido vindo do Catálogo do WhatsApp. Clique aqui para falar com o cliente e confirmar os sabores!</span>
+                        <AlertTriangle size={15} />
+                        <span>Pedido vindo do Catálogo do WhatsApp. Clique aqui para falar com o cliente e confirmar os sabores!</span>
                       </div>
                     )}
 
                     <div className="client-address-row">
-                      <span className="address-icon">📍</span>
+                      <span className="address-icon">
+                        <MapPin size={16} />
+                      </span>
                       <p className="address-text">
                         <strong>Entrega:</strong> {order.deliveryAddress}
                       </p>
@@ -548,6 +609,70 @@ export default function EmployeeOrders() {
           </div>
         )}
       </main>
+
+      {/* Componente de Impressão Térmica (80mm) visível apenas em @media print */}
+      {orderToPrint && (
+        <div id="thermal-receipt" className="thermal-receipt-container">
+          <div className="receipt-header">
+            <h2 className="receipt-title">PIZZARIA MIA</h2>
+            <p className="receipt-subtitle">Comanda de Produção &amp; Entrega</p>
+            <div className="receipt-divider">================================</div>
+            <div className="receipt-meta">
+              <div><strong>PEDIDO #{orderToPrint.id}</strong></div>
+              <div>Data: {new Date(orderToPrint.createdAt).toLocaleDateString('pt-BR')} {new Date(orderToPrint.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
+            </div>
+            <div className="receipt-divider">--------------------------------</div>
+          </div>
+
+          <div className="receipt-customer">
+            <div><strong>Cliente:</strong> {orderToPrint.customerName}</div>
+            {orderToPrint.customerPhone && (
+              <div><strong>Telefone:</strong> {orderToPrint.customerPhone}</div>
+            )}
+            <div className="receipt-address">
+              <strong>Destino:</strong> {orderToPrint.deliveryAddress}
+            </div>
+            <div className="receipt-divider">--------------------------------</div>
+          </div>
+
+          <div className="receipt-items">
+            <div className="receipt-items-header">
+              <span>QTD  ITEM</span>
+              <span>TOTAL</span>
+            </div>
+            <div className="receipt-divider">- - - - - - - - - - - - - - - -</div>
+            {orderToPrint.items.map((it) => (
+              <div key={it.id} className="receipt-item-row">
+                <div className="receipt-item-main">
+                  <strong>{it.quantity}x {it.pizzaName}</strong>
+                  {it.notes && <div className="receipt-item-notes">Obs: {it.notes}</div>}
+                </div>
+                <div className="receipt-item-price">
+                  R$ {it.subTotal.toFixed(2)}
+                </div>
+              </div>
+            ))}
+            <div className="receipt-divider">--------------------------------</div>
+          </div>
+
+          <div className="receipt-totals">
+            <div className="receipt-total-row">
+              <span>TOTAL A COBRAR:</span>
+              <strong>R$ {orderToPrint.totalAmount.toFixed(2)}</strong>
+            </div>
+            <div className="receipt-payment-row">
+              <span>Forma de Pagto:</span>
+              <strong>{orderToPrint.paymentMethod}</strong>
+            </div>
+            <div className="receipt-divider">================================</div>
+          </div>
+
+          <div className="receipt-footer">
+            <p>Impresso em: {new Date().toLocaleTimeString('pt-BR')}</p>
+            <p>Pizzaria Mia • Sabor Incomparável</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

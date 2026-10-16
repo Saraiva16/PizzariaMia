@@ -5,6 +5,7 @@ import * as signalR from '@microsoft/signalr';
 import { toast } from 'sonner';
 import { ThemeToggle } from '../../components/ThemeToggle/ThemeToggle';
 import { useWhatsAppNotification } from '../../contexts/WhatsAppNotificationContext';
+import { Pizza, ClipboardList, MessageSquare, LogOut, RefreshCw } from 'lucide-react';
 import './EmployeeChat.css';
 
 interface ChatConversation {
@@ -309,21 +310,21 @@ export default function EmployeeChat() {
             className="nav-tab-btn"
             onClick={() => navigate('/funcionario/cardapio')}
           >
-            🍕 Novo Pedido (Cardápio)
+            <Pizza size={16} /> Novo Pedido (Cardápio)
           </button>
           <button
             type="button"
             className="nav-tab-btn"
             onClick={() => navigate('/funcionario/pedidos')}
           >
-            📋 Consultar Pedidos
+            <ClipboardList size={16} /> Consultar Pedidos
           </button>
           <button
             type="button"
             className="nav-tab-btn active"
             onClick={() => navigate('/funcionario/chat')}
           >
-            💬 WhatsApp Chat
+            <MessageSquare size={16} /> WhatsApp Chat
             {unreadConversationsCount > 0 && (
               <span className="nav-tab-unread-badge" title={`${unreadConversationsCount} conversa(s) com mensagens não abertas`}>
                 {unreadConversationsCount}
@@ -335,7 +336,7 @@ export default function EmployeeChat() {
         <div className="header-right-controls">
           <ThemeToggle />
           <button type="button" className="logout-header-btn" onClick={handleLogout}>
-            Sair
+            <LogOut size={14} /> Sair
           </button>
         </div>
       </header>
@@ -352,7 +353,7 @@ export default function EmployeeChat() {
               onClick={() => fetchConversations()}
               title="Atualizar conversas"
             >
-              🔄
+              <RefreshCw size={15} />
             </button>
           </div>
 

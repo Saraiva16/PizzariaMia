@@ -5,6 +5,7 @@ import { ThemeToggle } from '../../components/ThemeToggle/ThemeToggle';
 import { useWhatsAppNotification } from '../../contexts/WhatsAppNotificationContext';
 import api from '../../services/api';
 import { toast } from 'sonner';
+import { Pizza, ClipboardList, MessageSquare, LogOut, Plus } from 'lucide-react';
 import './EmployeeMenu.css';
 
 // Interfaces
@@ -368,21 +369,21 @@ export default function EmployeeMenu() {
             className="nav-tab-btn active"
             onClick={() => navigate('/funcionario/cardapio')}
           >
-            🍕 Novo Pedido (Cardápio)
+            <Pizza size={16} /> Novo Pedido (Cardápio)
           </button>
           <button
             type="button"
             className="nav-tab-btn"
             onClick={() => navigate('/funcionario/pedidos')}
           >
-            📋 Consultar Pedidos
+            <ClipboardList size={16} /> Consultar Pedidos
           </button>
           <button
             type="button"
             className="nav-tab-btn"
             onClick={() => navigate('/funcionario/chat')}
           >
-            💬 WhatsApp Chat
+            <MessageSquare size={16} /> WhatsApp Chat
             {unreadConversationsCount > 0 && (
               <span className="nav-tab-unread-badge" title={`${unreadConversationsCount} conversa(s) com mensagens não abertas`}>
                 {unreadConversationsCount}
@@ -412,7 +413,7 @@ export default function EmployeeMenu() {
               transition: 'background 0.15s ease'
             }}
           >
-            + Novo pedido
+            <Plus size={16} /> Novo pedido
           </button>
           <button
             type="button"
@@ -424,10 +425,13 @@ export default function EmployeeMenu() {
               padding: '7px 14px',
               borderRadius: '6px',
               cursor: 'pointer',
-              fontWeight: 500
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}
           >
-            Sair
+            <LogOut size={14} /> Sair
           </button>
         </div>
       </div>
