@@ -1,11 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PizzaCard from '../../shared/PizzaCard/PizzaCard';
-import PizzaModal from './components/PizzaModal/PizzaModal';
+import PizzaModal, { type PizzaItem } from './components/PizzaModal/PizzaModal';
 import { useCart } from '../../contexts/CartContext';
 import { ThemeToggle } from '../../components/ThemeToggle/ThemeToggle';
+import api from '../../services/api';
 import './Menu.css';
 import './FloatingCart.css';
+
+export interface MenuItem extends PizzaItem {
+  standarSize?: string;
+  active?: boolean;
+}
+
+export function inferCategory(item: { name: string; badge?: string | null; standarSize?: string; price: number; category?: string }): string {
+  if (item.category && item.category !== 'Todas') return item.category;
+  const nameLower = item.name.toLowerCase();
+  const badgeLower = (item.badge || '').toLowerCase();
+  const sizeLower = (item.standarSize || '').toLowerCase();
+
+  if (sizeLower.includes('combo') || nameLower.startsWith('pacote') || nameLower.startsWith('combo')) {
+    return 'Combos';
+  }
+  if (sizeLower.includes('unidade') || nameLower.startsWith('esfiha')) {
+    return 'Esfihas';
+  }
+  if (sizeLower.includes('lata') || sizeLower.includes('litro') || sizeLower.includes('garrafa') || badgeLower.includes('bebida') || nameLower.includes('refrigerante') || nameLower.includes('cerveja') || nameLower.includes('água') || nameLower.includes('h2o') || nameLower.includes('coca') || nameLower.includes('fanta') || nameLower.includes('pepsi') || nameLower.includes('guaraná')) {
+    return 'Bebidas';
+  }
+  if (badgeLower.includes('doce') || nameLower.includes('doce') || nameLower.includes('chocolate') || nameLower.includes('brigadeiro') || nameLower.includes('beijinho') || nameLower.includes('prestígio') || nameLower.includes('sensação')) {
+    return 'Doces';
+  }
+  if (item.price >= 60 || badgeLower.includes('especial') || badgeLower.includes('premium')) {
+    return 'Especiais';
+  }
+  return 'Tradicionais';
+}
 
 const MOCKED_PIZZAS = [
   {
@@ -91,24 +121,60 @@ const MOCKED_PIZZAS = [
 
 export default function MenuPage() {
   const [activeFilter, setActiveFilter] = useState('Todas');
-  const [selectedPizza, setSelectedPizza] = useState<any | null>(null);
+  const [selectedPizza, setSelectedPizza] = useState<PizzaItem | null>(null);
+  const [items, setItems] = useState<MenuItem[]>(MOCKED_PIZZAS);
   const { totalItems } = useCart();
   const navigate = useNavigate();
 
-  const filters = ['Todas', 'Tradicionais', 'Especiais', 'Esfihas'];
+  const filters = ['Todas', 'Tradicionais', 'Especiais', 'Doces', 'Esfihas', 'Combos', 'Bebidas'];
+
+  useEffect(() => {
+    const fetchMenu = async () => {
+      try {
+        const response = await api.get('/pizzas/active');
+        if (response.data && response.data.length > 0) {
+          const mapped: MenuItem[] = response.data
+            .filter((p: { name: string }) => p.name !== 'Pedido via WhatsApp')
+            .map((p: { id: number; name: string; description: string; price: number; imageUrl?: string; badge?: string; standarSize?: string; active?: boolean }) => ({
+              id: p.id,
+              name: p.name,
+              slices: p.standarSize === 'Unidade' || p.standarSize === 'Combo' ? 1 : 8,
+              description: p.description,
+              price: Number(p.price),
+              imageUrl: p.imageUrl || undefined,
+              badge: p.badge || undefined,
+              standarSize: p.standarSize,
+              category: inferCategory(p)
+            }));
+          setItems(mapped);
+        }
+      } catch {
+        // mantém MOCKED_PIZZAS como fallback
+      }
+    };
+
+    fetchMenu();
+  }, []);
 
   // Group pizzas by category
-  const groupedPizzas = MOCKED_PIZZAS.reduce((acc, pizza) => {
-    if (!acc[pizza.category]) {
-      acc[pizza.category] = [];
-    }
-    acc[pizza.category].push(pizza);
-    return acc;
-  }, {} as Record<string, typeof MOCKED_PIZZAS>);
+  const groupedPizzas = useMemo(() => {
+    return items.reduce((acc, item) => {
+      const cat = item.category || 'Tradicionais';
+      if (!acc[cat]) {
+        acc[cat] = [];
+      }
+      acc[cat].push(item);
+      return acc;
+    }, {} as Record<string, MenuItem[]>);
+  }, [items]);
 
-  const categoriesToRender = activeFilter === 'Todas' 
-    ? Object.keys(groupedPizzas) 
-    : [activeFilter];
+  const categoriesToRender = useMemo(() => {
+    if (activeFilter === 'Todas') {
+      const preferredOrder = ['Tradicionais', 'Especiais', 'Doces', 'Esfihas', 'Combos', 'Bebidas'];
+      return preferredOrder.filter(cat => groupedPizzas[cat] && groupedPizzas[cat].length > 0);
+    }
+    return [activeFilter];
+  }, [activeFilter, groupedPizzas]);
 
   return (
     <div className="menu-page">
@@ -211,7 +277,7 @@ export default function MenuPage() {
       {selectedPizza && (
         <PizzaModal 
           pizza={selectedPizza} 
-          allPizzas={MOCKED_PIZZAS}
+          allPizzas={items}
           onClose={() => setSelectedPizza(null)} 
         />
       )}

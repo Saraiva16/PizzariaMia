@@ -5,7 +5,8 @@ import { ThemeToggle } from '../../components/ThemeToggle/ThemeToggle';
 import { useWhatsAppNotification } from '../../contexts/WhatsAppNotificationContext';
 import api from '../../services/api';
 import { toast } from 'sonner';
-import { Pizza, ClipboardList, MessageSquare, LogOut, Plus } from 'lucide-react';
+import { Pizza as PizzaIcon, ClipboardList, MessageSquare, LogOut, Plus } from 'lucide-react';
+import { inferCategory } from '../Menu/Menu';
 import './EmployeeMenu.css';
 
 // Interfaces
@@ -39,7 +40,7 @@ interface OrderItem {
 }
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-const CATEGORIES = ['Todas', 'Tradicionais', 'Especiais', 'Esfihas', 'Doces'];
+const CATEGORIES = ['Todas', 'Tradicionais', 'Especiais', 'Doces', 'Esfihas', 'Combos', 'Bebidas'];
 
 const DEFAULT_REMOVABLE_INGREDIENTS: Ingredient[] = [
   { id: 101, name: 'Cebola', additionalPrice: 0 },
@@ -216,7 +217,17 @@ export default function EmployeeMenu() {
       try {
         const response = await api.get('/pizzas/active');
         if (response.data && response.data.length > 0) {
-          setPizzas(response.data);
+          const mapped: Pizza[] = response.data
+            .filter((p: { name: string }) => p.name !== 'Pedido via WhatsApp')
+            .map((p: { id: number; name: string; price: number; category?: string; badge?: string; ingredients?: Ingredient[]; standarSize?: string }) => ({
+              id: p.id,
+              name: p.name,
+              price: Number(p.price),
+              category: p.category || inferCategory(p),
+              badge: p.badge || undefined,
+              ingredients: p.ingredients || []
+            }));
+          setPizzas(mapped);
           return;
         }
       } catch {
@@ -483,7 +494,7 @@ export default function EmployeeMenu() {
             className="nav-tab-btn active"
             onClick={() => navigate('/funcionario/cardapio')}
           >
-            <Pizza size={16} /> Novo Pedido (Cardápio)
+            <PizzaIcon size={16} /> Novo Pedido (Cardápio)
           </button>
           <button
             type="button"
