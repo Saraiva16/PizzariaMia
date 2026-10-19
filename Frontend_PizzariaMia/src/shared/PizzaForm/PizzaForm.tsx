@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import api from '../../services/api';
 import './PizzaForm.css';
 import '../App.css';
 
@@ -44,19 +45,17 @@ export default function PizzaForm() {
     }
 
     try {
-      const response = await fetch('http://localhost:5210/api/Pizzas', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Falha ao cadastrar a pizza. Tente novamente.');
-      }
+      await api.post('/Pizzas', formData);
 
       setSuccess(true);
       form.reset();
-    } catch (err: any) {
-      setError(err.message);
+      setPrice('');
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: string | { message?: string } }; message?: string };
+      const errorMessage = typeof axiosErr.response?.data === 'string'
+        ? axiosErr.response.data
+        : axiosErr.response?.data?.message || axiosErr.message || 'Falha ao cadastrar a pizza. Tente novamente.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -57,7 +57,8 @@ namespace PizzariaMia.Controllers
             if (model.Items == null || !model.Items.Any())
                 return BadRequest(new { error = "O carrinho está vazio." });
 
-            decimal totalAmount = 12.00m; // Default delivery fee
+            decimal deliveryFee = model.IsDelivery ? 10.00m : 0.00m;
+            decimal totalAmount = deliveryFee;
             var orderItems = new List<OrderItem>();
 
             foreach (var item in model.Items)
@@ -79,28 +80,27 @@ namespace PizzariaMia.Controllers
                 });
             }
 
-            // Resolução do Endereço de Entrega
+            // Resolução do Endereço de Entrega (Apenas se for Delivery)
             Address? address = null;
-            if (model.AddressId.HasValue && model.AddressId.Value > 0)
+            if (model.IsDelivery)
             {
-                address = await _context.Addresses.FirstOrDefaultAsync(a => a.Id == model.AddressId && a.UserId == targetUserId);
-            }
-
-            if (address == null && !string.IsNullOrWhiteSpace(model.DeliveryAddress))
-            {
-                address = new Address
+                if (model.AddressId.HasValue && model.AddressId.Value > 0)
                 {
-                    UserId = targetUserId,
-                    Label = "Entrega Pedido Atendimento",
-                    StreetAndNumber = model.DeliveryAddress.Trim(),
-                    IsMain = true
-                };
-                _context.Addresses.Add(address);
-                await _context.SaveChangesAsync();
-            }
-            else if (address == null)
-            {
-                address = await _context.Addresses.FirstOrDefaultAsync(a => a.UserId == targetUserId);
+                    address = await _context.Addresses.FirstOrDefaultAsync(a => a.Id == model.AddressId && a.UserId == targetUserId);
+                }
+
+                if (address == null && !string.IsNullOrWhiteSpace(model.DeliveryAddress))
+                {
+                    address = new Address
+                    {
+                        UserId = targetUserId,
+                        Label = "Entrega Pedido",
+                        StreetAndNumber = model.DeliveryAddress.Trim(),
+                        IsMain = true
+                    };
+                    _context.Addresses.Add(address);
+                    await _context.SaveChangesAsync();
+                }
             }
 
             var order = new Order

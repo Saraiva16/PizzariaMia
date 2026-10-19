@@ -29,6 +29,7 @@ interface OrderItem {
 export default function EmployeeCheckout() {
   const navigate = useNavigate();
   const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
+  const [isDelivery, setIsDelivery] = useState<boolean>(true);
   const [deliveryAddress, setDeliveryAddress] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<number>(1); // 1 = CreditCard, 2 = DebitCard, 3 = Pix, 4 = Cash
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
@@ -103,7 +104,7 @@ export default function EmployeeCheckout() {
     }, 0);
   }, [orderItems]);
 
-  const deliveryFee = 12.0; // Taxa padrão do sistema
+  const deliveryFee = isDelivery ? 10.0 : 0.0;
   const totalAmount = subtotalPizzas + deliveryFee;
 
   const handleConfirmOrder = async () => {
@@ -113,7 +114,7 @@ export default function EmployeeCheckout() {
       return;
     }
 
-    if (!deliveryAddress.trim()) {
+    if (isDelivery && !deliveryAddress.trim()) {
       toast.error('Por favor, informe o endereço de entrega do cliente.');
       return;
     }
@@ -127,14 +128,15 @@ export default function EmployeeCheckout() {
       setIsSubmitting(true);
 
       // Localiza addressId se corresponder a um dos cadastrados
-      const existingAddress = selectedClient.addresses?.find(
+      const existingAddress = isDelivery && selectedClient.addresses?.find(
         (a) => a.streetAndNumber.trim().toLowerCase() === deliveryAddress.trim().toLowerCase()
       );
 
       const payload = {
         userId: selectedClient.id,
-        addressId: existingAddress ? existingAddress.id : undefined,
-        deliveryAddress: deliveryAddress.trim(),
+        isDelivery,
+        addressId: isDelivery && existingAddress ? existingAddress.id : undefined,
+        deliveryAddress: isDelivery ? deliveryAddress.trim() : 'Retirada no Balcão',
         paymentMethod,
         items: orderItems.map((item) => {
           // Prepara customização textual para a cozinha
@@ -233,35 +235,64 @@ export default function EmployeeCheckout() {
               )}
 
               <div className="client-data-item full-width-item">
-                <label htmlFor="delivery-address-input" className="data-label">
-                  Endereço de Entrega *
-                </label>
-                <div className="address-input-wrapper">
-                  <input
-                    id="delivery-address-input"
-                    type="text"
-                    className="delivery-address-input"
-                    placeholder="Ex: Rua das Flores, 123 - Apto 402 - Centro"
-                    value={deliveryAddress}
-                    onChange={(e) => setDeliveryAddress(e.target.value)}
-                  />
-                  {selectedClient.addresses && selectedClient.addresses.length > 1 && (
-                    <div className="saved-addresses-chips">
-                      <span className="chips-label">Endereços salvos:</span>
-                      {selectedClient.addresses.map((addr) => (
-                        <button
-                          key={addr.id}
-                          type="button"
-                          className={`chip-addr-btn ${deliveryAddress === addr.streetAndNumber ? 'active' : ''}`}
-                          onClick={() => setDeliveryAddress(addr.streetAndNumber)}
-                        >
-                          {addr.label || 'Outro'}: {addr.streetAndNumber}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                <span className="data-label">Tipo de Pedido:</span>
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.4rem', marginBottom: '0.6rem' }}>
+                  <button
+                    type="button"
+                    className={`chip-addr-btn ${isDelivery ? 'active' : ''}`}
+                    onClick={() => setIsDelivery(true)}
+                    style={{ padding: '0.5rem 1rem', fontWeight: 600 }}
+                  >
+                    🛵 Entrega (Delivery - R$ 10,00)
+                  </button>
+                  <button
+                    type="button"
+                    className={`chip-addr-btn ${!isDelivery ? 'active' : ''}`}
+                    onClick={() => setIsDelivery(false)}
+                    style={{ padding: '0.5rem 1rem', fontWeight: 600 }}
+                  >
+                    🏪 Retirada no Balcão (Grátis)
+                  </button>
                 </div>
               </div>
+
+              {isDelivery ? (
+                <div className="client-data-item full-width-item">
+                  <label htmlFor="delivery-address-input" className="data-label">
+                    Endereço de Entrega *
+                  </label>
+                  <div className="address-input-wrapper">
+                    <input
+                      id="delivery-address-input"
+                      type="text"
+                      className="delivery-address-input"
+                      placeholder="Ex: Rua das Flores, 123 - Apto 402 - Centro"
+                      value={deliveryAddress}
+                      onChange={(e) => setDeliveryAddress(e.target.value)}
+                    />
+                    {selectedClient.addresses && selectedClient.addresses.length > 1 && (
+                      <div className="saved-addresses-chips">
+                        <span className="chips-label">Endereços salvos:</span>
+                        {selectedClient.addresses.map((addr) => (
+                          <button
+                            key={addr.id}
+                            type="button"
+                            className={`chip-addr-btn ${deliveryAddress === addr.streetAndNumber ? 'active' : ''}`}
+                            onClick={() => setDeliveryAddress(addr.streetAndNumber)}
+                          >
+                            {addr.label || 'Outro'}: {addr.streetAndNumber}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="client-data-item full-width-item" style={{ background: 'rgba(234, 88, 12, 0.08)', padding: '0.8rem', borderRadius: '8px' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--color-primary, #ea580c)' }}>📍 Retirada no Balcão da Pizzaria</span>
+                  <p style={{ margin: '0.2rem 0 0', fontSize: '0.88rem', color: '#666' }}>O cliente retirará o pedido presencialmente. Nenhuma taxa de entrega será cobrada.</p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="no-client-warning">
@@ -401,7 +432,7 @@ export default function EmployeeCheckout() {
             <button
               type="button"
               className="confirm-order-submit-btn"
-              disabled={isSubmitting || !selectedClient || !deliveryAddress.trim() || orderItems.length === 0}
+              disabled={isSubmitting || !selectedClient || (isDelivery && !deliveryAddress.trim()) || orderItems.length === 0}
               onClick={handleConfirmOrder}
             >
               {isSubmitting ? 'Enviando Pedido...' : 'Confirmar e Enviar para Cozinha'}

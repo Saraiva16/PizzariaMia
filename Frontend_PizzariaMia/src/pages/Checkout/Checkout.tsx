@@ -12,6 +12,7 @@ export default function CheckoutPage() {
   const navigate = useNavigate();
   const [paymentMethod, setPaymentMethod] = useState('pix');
   const [selectedAddress, setSelectedAddress] = useState<number | null>(null);
+  const [orderType, setOrderType] = useState<'delivery' | 'pickup'>('delivery');
   const [itemToRemove, setItemToRemove] = useState<string | null>(null);
   const [itemToEdit, setItemToEdit] = useState<CartItem | null>(null);
   const [loading, setLoading] = useState(false);
@@ -34,7 +35,7 @@ export default function CheckoutPage() {
       });
   }, [navigate]);
 
-  const deliveryFee = 12.00;
+  const deliveryFee = orderType === 'delivery' ? 10.00 : 0.00;
   const total = subtotal + deliveryFee;
 
   const handleRequestRemove = (id: string) => {
@@ -49,7 +50,7 @@ export default function CheckoutPage() {
   };
 
   const handleConfirmOrder = async () => {
-    if (!selectedAddress) {
+    if (orderType === 'delivery' && !selectedAddress) {
       toast.error('Por favor, selecione um endereço de entrega. Se não tiver, adicione no perfil.');
       return;
     }
@@ -68,7 +69,8 @@ export default function CheckoutPage() {
       if (paymentMethod === 'cash') paymentEnum = 2;
 
       const response = await api.post('/orders', {
-        AddressId: selectedAddress,
+        AddressId: orderType === 'delivery' ? selectedAddress : null,
+        IsDelivery: orderType === 'delivery',
         PaymentMethod: paymentEnum,
         Items: itemsPayload
       });
@@ -178,53 +180,89 @@ export default function CheckoutPage() {
             </div>
           </section>
 
-          {/* Delivery Address */}
+          {/* Delivery or Pickup Selection */}
           <section className="checkout-section">
-            <div className="section-header" style={{ marginBottom: '1rem' }}>
-              <h3 className="section-title">Endereço de Entrega</h3>
+            <h3 className="section-title">Como deseja receber seu pedido?</h3>
+            <div className="payment-options" style={{ marginBottom: '1.5rem' }}>
+              <label className={`payment-option ${orderType === 'delivery' ? 'active' : ''}`}>
+                <input 
+                  type="radio" 
+                  name="orderType" 
+                  value="delivery" 
+                  checked={orderType === 'delivery'} 
+                  onChange={() => setOrderType('delivery')} 
+                />
+                <div className="payment-icon">🛵</div>
+                <span>Entrega (Delivery - R$ 10,00)</span>
+              </label>
+
+              <label className={`payment-option ${orderType === 'pickup' ? 'active' : ''}`}>
+                <input 
+                  type="radio" 
+                  name="orderType" 
+                  value="pickup" 
+                  checked={orderType === 'pickup'} 
+                  onChange={() => setOrderType('pickup')} 
+                />
+                <div className="payment-icon">🏪</div>
+                <span>Retirar no Balcão (Grátis)</span>
+              </label>
             </div>
-            <div className="address-options">
-              {addresses.length === 0 ? (
-                <div style={{ padding: '1rem', textAlign: 'center', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
-                  <p style={{ marginBottom: '1rem', color: '#666' }}>Nenhum endereço cadastrado.</p>
-                  <button className="btn-primary" onClick={() => navigate('/perfil/endereco/novo')} style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>
-                    + Adicionar Endereço
-                  </button>
+
+            {orderType === 'delivery' ? (
+              <>
+                <div className="section-header" style={{ marginBottom: '1rem' }}>
+                  <h4 className="section-title" style={{ fontSize: '1.1rem' }}>Endereço de Entrega</h4>
                 </div>
-              ) : (
-                addresses.map(addr => (
-                  <label key={addr.id} className={`address-option ${selectedAddress === addr.id ? 'active' : ''}`}>
-                    <input 
-                      type="radio" 
-                      name="address" 
-                      value={addr.id}
-                      checked={selectedAddress === addr.id}
-                      onChange={() => setSelectedAddress(addr.id)}
-                    />
-                    <div className="address-option-icon">
-                      {addr.label?.toLowerCase() === 'casa' ? (
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                          <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                        </svg>
-                      ) : (
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                        </svg>
-                      )}
+                <div className="address-options">
+                  {addresses.length === 0 ? (
+                    <div style={{ padding: '1rem', textAlign: 'center', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
+                      <p style={{ marginBottom: '1rem', color: '#666' }}>Nenhum endereço cadastrado.</p>
+                      <button className="btn-primary" onClick={() => navigate('/perfil/endereco/novo')} style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>
+                        + Adicionar Endereço
+                      </button>
                     </div>
-                    <div className="address-option-details">
-                      <p className="address-option-title">
-                        {addr.label}
-                        {addr.isMain && <span className="address-badge">Principal</span>}
-                      </p>
-                      <p className="address-option-desc">{addr.streetAndNumber}</p>
-                    </div>
-                  </label>
-                ))
-              )}
-            </div>
+                  ) : (
+                    addresses.map(addr => (
+                      <label key={addr.id} className={`address-option ${selectedAddress === addr.id ? 'active' : ''}`}>
+                        <input 
+                          type="radio" 
+                          name="address" 
+                          value={addr.id}
+                          checked={selectedAddress === addr.id}
+                          onChange={() => setSelectedAddress(addr.id)}
+                        />
+                        <div className="address-option-icon">
+                          {addr.label?.toLowerCase() === 'casa' ? (
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                            </svg>
+                          ) : (
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                            </svg>
+                          )}
+                        </div>
+                        <div className="address-option-details">
+                          <p className="address-option-title">
+                            {addr.label}
+                            {addr.isMain && <span className="address-badge">Principal</span>}
+                          </p>
+                          <p className="address-option-desc">{addr.streetAndNumber}</p>
+                        </div>
+                      </label>
+                    ))
+                  )}
+                </div>
+              </>
+            ) : (
+              <div style={{ padding: '1rem', backgroundColor: 'rgba(234, 88, 12, 0.08)', borderRadius: '8px', border: '1px solid rgba(234, 88, 12, 0.2)' }}>
+                <p style={{ margin: 0, fontWeight: 600, color: 'var(--color-primary, #ea580c)' }}>📍 Retirada no Balcão da Pizzaria</p>
+                <p style={{ margin: '0.3rem 0 0', color: '#555', fontSize: '0.9rem' }}>Seu pedido será preparado para você retirar diretamente na loja sem custo de entrega.</p>
+              </div>
+            )}
           </section>
 
           {/* Payment Method */}

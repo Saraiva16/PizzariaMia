@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import api from '../../services/api';
+import api, { HUB_URL } from '../../services/api';
 import * as signalR from '@microsoft/signalr';
 import { toast } from 'sonner';
 import { ThemeToggle } from '../../components/ThemeToggle/ThemeToggle';
@@ -137,7 +137,7 @@ export default function EmployeeChat() {
   // Conexão SignalR em Tempo Real para Mensagens do WhatsApp (Zero Polling)
   useEffect(() => {
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl('http://localhost:5210/orderTrackingHub')
+      .withUrl(HUB_URL)
       .withAutomaticReconnect()
       .build();
 

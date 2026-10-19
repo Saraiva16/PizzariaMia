@@ -10,11 +10,14 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 // Configurar CORS
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? new[] { "http://localhost:5173" };
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendPolicy", policy =>
     {
-        policy.WithOrigins("http://localhost:5173") // Porta padrão do Vite
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -31,11 +34,14 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IPizzaRepository, PizzaRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 
-// Configurar o Redis Cache (Que já está rodando no Docker da Evolution!)
+// Configurar o Redis Cache
+var redisConn = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
+var redisInstance = builder.Configuration["Redis:InstanceName"] ?? "PizzariaMia_";
+
 builder.Services.AddStackExchangeRedisCache(options =>
 {
-    options.Configuration = "localhost:6379";
-    options.InstanceName = "PizzariaMia_";
+    options.Configuration = redisConn;
+    options.InstanceName = redisInstance;
 });
 
 // Serviços da Aplicação
@@ -81,6 +87,22 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    // Em produção, captura exceções não tratadas e devolve JSON padronizado
+    app.UseExceptionHandler(errorApp =>
+    {
+        errorApp.Run(async context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsJsonAsync(new
+            {
+                error = "Ocorreu um erro interno no servidor. Por favor, tente novamente mais tarde."
+            });
+        });
+    });
+}
 
 app.UseHttpsRedirection();
 
@@ -96,12 +118,15 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<PizzariaMia.Hubs.OrderTrackingHub>("/orderTrackingHub"); // <--- Mapeamento do Hub
 
-// Seed Employee and Admin Users for Testing
+// Aplicar migrations pendentes e seed inicial
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-    // Seed Funcionário (Employee)
+    // Aplica automaticamente as migrations do EF Core no banco
+    context.Database.Migrate();
+
+    // Seed Funcionário (Employee) inicial se não existir
     var employeePhone = "(11) 98888-8888";
     var existingEmployee = context.Users.FirstOrDefault(u => u.Phone == employeePhone || u.Email == "funcionario@pizzariamia.com");
     if (existingEmployee == null)
@@ -115,14 +140,8 @@ using (var scope = app.Services.CreateScope())
             Role = "Employee"
         });
     }
-    else
-    {
-        existingEmployee.Phone = employeePhone;
-        existingEmployee.Role = "Employee";
-        existingEmployee.PasswordHash = BCrypt.Net.BCrypt.HashPassword("funcionario123");
-    }
 
-    // Seed Admin
+    // Seed Admin inicial se não existir
     var adminPhone = "(11) 99999-9999";
     var existingAdmin = context.Users.FirstOrDefault(u => u.Phone == adminPhone || u.Email == "admin@admin.com");
     if (existingAdmin == null)
@@ -136,31 +155,8 @@ using (var scope = app.Services.CreateScope())
             Role = "Admin"
         });
     }
-    else
-    {
-        existingAdmin.Phone = adminPhone;
-        existingAdmin.Role = "Admin";
-        existingAdmin.PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123");
-    }
 
     context.SaveChanges();
-
-    // Garante que a tabela WhatsAppMessages e a coluna IsRead existam no PostgreSQL
-    context.Database.ExecuteSqlRaw(@"
-        CREATE TABLE IF NOT EXISTS ""WhatsAppMessages"" (
-            ""Id"" SERIAL PRIMARY KEY,
-            ""RemoteJid"" TEXT NOT NULL,
-            ""SenderPhone"" TEXT NOT NULL,
-            ""SenderName"" TEXT NOT NULL,
-            ""Text"" TEXT NOT NULL,
-            ""FromMe"" BOOLEAN NOT NULL DEFAULT FALSE,
-            ""MessageType"" TEXT NOT NULL DEFAULT 'text',
-            ""Timestamp"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-            ""CreatedAt"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-            ""IsRead"" BOOLEAN NOT NULL DEFAULT TRUE
-        );
-        ALTER TABLE ""WhatsAppMessages"" ADD COLUMN IF NOT EXISTS ""IsRead"" BOOLEAN NOT NULL DEFAULT TRUE;
-    ");
 }
 
 app.Run();

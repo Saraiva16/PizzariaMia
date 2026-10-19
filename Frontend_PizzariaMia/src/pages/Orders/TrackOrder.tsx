@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import './TrackOrder.css';
 
 import * as signalR from '@microsoft/signalr';
-import api from '../../services/api';
+import api, { HUB_URL } from '../../services/api';
 import { toast } from 'sonner';
 
 const STAGES = [
@@ -56,7 +56,7 @@ export default function TrackOrder() {
 
     // Inicia conexão WebSocket
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl('http://localhost:5210/orderTrackingHub')
+      .withUrl(HUB_URL)
       .withAutomaticReconnect()
       .build();
 

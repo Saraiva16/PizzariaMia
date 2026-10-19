@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PizzariaMia.Models;
 using PizzariaMia.Repositories;
@@ -9,6 +10,8 @@ namespace PizzariaMia.Controllers
     public class PizzasController : ControllerBase
     {
         private readonly IPizzaRepository _pizzaRepository;
+        private static readonly string[] AllowedExtensions = { ".jpg", ".jpeg", ".png", ".webp" };
+        private const long MaxFileSizeInBytes = 5 * 1024 * 1024; // 5MB
 
         public PizzasController(IPizzaRepository pizzaRepository)
         {
@@ -47,11 +50,23 @@ namespace PizzariaMia.Controllers
 
         // POST: api/Pizzas
         [HttpPost]
+        [Authorize(Roles = "Admin,Employee")]
         public async Task<ActionResult<Pizza>> PostPizza([FromForm] PizzariaMia.DTOs.PizzaCreateDto dto)
         {
             if (dto.Image == null || dto.Image.Length == 0)
             {
                 return BadRequest("A imagem é obrigatória.");
+            }
+
+            if (dto.Image.Length > MaxFileSizeInBytes)
+            {
+                return BadRequest("O tamanho da imagem não pode ultrapassar 5MB.");
+            }
+
+            var extension = Path.GetExtension(dto.Image.FileName)?.ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(extension) || !AllowedExtensions.Contains(extension))
+            {
+                return BadRequest("Formato de imagem inválido. Formatos permitidos: JPG, PNG, WEBP.");
             }
 
             var imagesFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
@@ -60,8 +75,8 @@ namespace PizzariaMia.Controllers
                 Directory.CreateDirectory(imagesFolder);
             }
 
-            // Gerar um nome único para o arquivo
-            var fileName = Guid.NewGuid().ToString() + Path.GetExtension(dto.Image.FileName);
+            // Gerar um nome único e seguro para o arquivo
+            var fileName = $"{Guid.NewGuid():N}{extension}";
             var filePath = Path.Combine(imagesFolder, fileName);
 
             using (var stream = new FileStream(filePath, FileMode.Create))
@@ -89,6 +104,7 @@ namespace PizzariaMia.Controllers
         }
 
         [HttpPost("seed")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> SeedPizzas()
         {
             var currentPizzas = await _pizzaRepository.GetAllAsync();

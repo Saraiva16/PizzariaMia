@@ -8,6 +8,7 @@ namespace PizzariaMia.DTOs
         public int? UserId { get; set; }
         public int? AddressId { get; set; }
         public string? DeliveryAddress { get; set; }
+        public bool IsDelivery { get; set; } = true;
         public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.CreditCard;
         
         [Required]

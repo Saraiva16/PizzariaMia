@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import * as signalR from '@microsoft/signalr';
-import api from '../services/api';
+import api, { HUB_URL } from '../services/api';
 import { playWhatsAppNotificationSound } from '../services/audioNotification';
 import { WhatsAppToast, type WhatsAppToastData } from '../components/WhatsAppToast/WhatsAppToast';
 
@@ -82,7 +82,7 @@ export const WhatsAppNotificationProvider: React.FC<{ children: React.ReactNode 
     if (!isEmployeeUser()) return;
 
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl('http://localhost:5210/orderTrackingHub')
+      .withUrl(HUB_URL)
       .withAutomaticReconnect()
       .build();
 
