@@ -17,6 +17,7 @@ namespace PizzariaMia.Controllers
         private readonly ILogger<WhatsappWebhookController> _logger;
         private readonly IEvolutionApiService _evolutionApi;
         private readonly IBotStateService _botState;
+        private readonly IOrderParserService _orderParser;
         private readonly PizzariaMia.Data.AppDbContext _context;
         private readonly Microsoft.AspNetCore.SignalR.IHubContext<PizzariaMia.Hubs.OrderTrackingHub> _hubContext;
 
@@ -24,12 +25,14 @@ namespace PizzariaMia.Controllers
             ILogger<WhatsappWebhookController> logger, 
             IEvolutionApiService evolutionApi, 
             IBotStateService botState,
+            IOrderParserService orderParser,
             PizzariaMia.Data.AppDbContext context,
             Microsoft.AspNetCore.SignalR.IHubContext<PizzariaMia.Hubs.OrderTrackingHub> hubContext)
         {
             _logger = logger;
             _evolutionApi = evolutionApi;
             _botState = botState;
+            _orderParser = orderParser;
             _context = context;
             _hubContext = hubContext;
         }
@@ -300,7 +303,7 @@ namespace PizzariaMia.Controllers
                             else
                             {
                                 await _botState.SetUserStepAsync(remoteJid, OrderStep.AguardandoEndereco);
-                                string askEndereco = "Ótimo! Anotei seus itens 🍕\n\n" +
+                                string askEndereco = $"Ótimo! Anotei seus itens 🍕\n\n{parsedOrder.FormattedDescription}\n\n" +
                                                      "Como deseja receber seu pedido?\n" +
                                                      "1 - Delivery: [Digite seu endereço completo com rua e número]\n" +
                                                      "2 - Retirada no balcão";
@@ -766,121 +769,10 @@ namespace PizzariaMia.Controllers
             await SendBotResponseAsync(remoteJid, phoneNum, resposta);
         }
 
-        public class ParsedOrderResult
-        {
-            public decimal TotalAmount { get; set; }
-            public string FormattedDescription { get; set; } = string.Empty;
-            public bool HasRecognizedItems { get; set; }
-        }
-
         private async Task<ParsedOrderResult> ParseOrderDetailsAsync(string text)
         {
-            var result = new ParsedOrderResult();
-            try
-            {
-                var pizzas = await _context.Pizzas.ToListAsync();
-                string normalizedInput = NormalizeText(text);
-                var recognizedItems = new List<string>();
-                decimal total = 0;
-
-                // 1. Detecta padrões Meio a Meio (ex: "meio calabresa meio mussarela", "1/2 frango 1/2 quatro queijos")
-                var halfRegex = new Regex(@"(?:1\/2|meio|metade)\s+(?:de\s+)?([a-z0-9\s]+?)\s+(?:e\s+|com\s+|\/\s*)?(?:1\/2|meio|metade)\s+(?:de\s+)?([a-z0-9\s]+?)(?:$|\s*,\s*|\s+e\s+|\s+1\s+|\s+2\s+)", RegexOptions.IgnoreCase);
-                var halfMatches = halfRegex.Matches(normalizedInput);
-
-                foreach (Match hm in halfMatches)
-                {
-                    string term1 = hm.Groups[1].Value.Trim();
-                    string term2 = hm.Groups[2].Value.Trim();
-
-                    var p1 = pizzas.FirstOrDefault(p => NormalizeText(p.Name).Contains(term1) || term1.Contains(NormalizeText(p.Name)));
-                    var p2 = pizzas.FirstOrDefault(p => NormalizeText(p.Name).Contains(term2) || term2.Contains(NormalizeText(p.Name)));
-
-                    if (p1 != null && p2 != null)
-                    {
-                        decimal halfPrice = Math.Max(p1.Price, p2.Price);
-                        total += halfPrice;
-                        recognizedItems.Add($"• 1x Pizza Meio {p1.Name} / Meio {p2.Name} ({halfPrice:C})");
-                        normalizedInput = normalizedInput.Replace(hm.Value, " ");
-                    }
-                }
-
-                // 2. Detecta Pizzas Inteiras e Quantidades
-                foreach (var pizza in pizzas)
-                {
-                    if (pizza.Name == "Pedido via WhatsApp") continue;
-                    string normPizzaName = NormalizeText(pizza.Name);
-
-                    if (normalizedInput.Contains(normPizzaName))
-                    {
-                        var qtyPattern = $@"(?:^|\s|,)(\d+)\s*(?:x\s*|pizzas?\s*(?:de\s*)?)?{Regex.Escape(normPizzaName)}";
-                        var qtyMatch = Regex.Match(normalizedInput, qtyPattern);
-                        int qty = 1;
-                        if (qtyMatch.Success && int.TryParse(qtyMatch.Groups[1].Value, out int parsedQty))
-                        {
-                            qty = Math.Max(1, parsedQty);
-                        }
-
-                        decimal sub = pizza.Price * qty;
-                        total += sub;
-                        recognizedItems.Add($"• {qty}x Pizza {pizza.Name} ({sub:C})");
-
-                        if (qtyMatch.Success)
-                            normalizedInput = normalizedInput.Replace(qtyMatch.Value, " ");
-                        else
-                            normalizedInput = normalizedInput.Replace(normPizzaName, " ");
-                    }
-                }
-
-                // 3. Detecta Bebidas Comuns (Refrigerantes)
-                var beverageMap = new Dictionary<string, (string Name, decimal Price)>
-                {
-                    { "coca", ("Coca-Cola 2L", 15.00m) },
-                    { "coca cola", ("Coca-Cola 2L", 15.00m) },
-                    { "guarana", ("Guaraná Antarctica 2L", 13.00m) },
-                    { "fanta", ("Fanta Laranja 2L", 13.00m) },
-                    { "agua", ("Água Mineral 500ml", 5.00m) }
-                };
-
-                foreach (var bev in beverageMap)
-                {
-                    if (normalizedInput.Contains(bev.Key))
-                    {
-                        var bevQtyPattern = $@"(?:^|\s|,)(\d+)\s*(?:x\s*)?{Regex.Escape(bev.Key)}";
-                        var bevMatch = Regex.Match(normalizedInput, bevQtyPattern);
-                        int qty = 1;
-                        if (bevMatch.Success && int.TryParse(bevMatch.Groups[1].Value, out int parsedBQty))
-                        {
-                            qty = Math.Max(1, parsedBQty);
-                        }
-
-                        decimal bevSub = bev.Value.Price * qty;
-                        total += bevSub;
-                        recognizedItems.Add($"• {qty}x {bev.Value.Name} ({bevSub:C})");
-
-                        if (bevMatch.Success)
-                            normalizedInput = normalizedInput.Replace(bevMatch.Value, " ");
-                        else
-                            normalizedInput = normalizedInput.Replace(bev.Key, " ");
-                    }
-                }
-
-                if (recognizedItems.Count > 0)
-                {
-                    result.HasRecognizedItems = true;
-                    result.TotalAmount = total;
-                    result.FormattedDescription = string.Join("\n", recognizedItems);
-                    return result;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning($"Erro no parser determinístico: {ex.Message}");
-            }
-
-            result.HasRecognizedItems = false;
-            result.TotalAmount = 0;
-            result.FormattedDescription = text.Trim();
-            return result;
+            var pizzas = await _context.Pizzas.ToListAsync();
+            return _orderParser.ParseOrder(text, pizzas);
         }
      }
  }

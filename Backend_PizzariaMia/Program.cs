@@ -41,6 +41,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
 // Serviços da Aplicação
 builder.Services.AddHttpClient<PizzariaMia.Services.IEvolutionApiService, PizzariaMia.Services.EvolutionApiService>();
 builder.Services.AddScoped<PizzariaMia.Services.IBotStateService, PizzariaMia.Services.BotStateService>();
+builder.Services.AddScoped<PizzariaMia.Services.IOrderParserService, PizzariaMia.Services.OrderParserService>();
 
 // Configure JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new ArgumentNullException("Jwt:Key is missing in configuration.");
