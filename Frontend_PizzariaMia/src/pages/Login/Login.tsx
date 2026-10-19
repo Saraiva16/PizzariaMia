@@ -41,7 +41,13 @@ export default function Login() {
       localStorage.setItem('@PizzariaMia:user', JSON.stringify(response.data));
       
       toast.success("Login realizado com sucesso!");
-      navigate('/cardapio');
+
+      const userRole = (response.data.role || '').toLowerCase();
+      if (userRole === 'employee' || userRole === 'admin') {
+        navigate('/funcionario/cardapio');
+      } else {
+        navigate('/cardapio');
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Erro ao realizar login.");
     } finally {

@@ -150,3 +150,33 @@
 .card-add-btn:active {
   transform: scale(0.95);
 }
+
+/* =========================================
+   MODO ESCURO - PizzaCard.css
+   ========================================= */
+[data-theme="dark"] .pizza-card {
+  background-color: var(--color-surface, #1b1517);
+  border-color: var(--color-border, #36292d);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .card-title {
+  color: var(--color-text, #fdf2f4);
+}
+
+[data-theme="dark"] .card-desc {
+  color: var(--color-text-muted, #b5a4a7);
+}
+
+[data-theme="dark"] .card-footer {
+  border-top-color: var(--color-border-subtle, #291f22);
+}
+
+[data-theme="dark"] .card-price-label {
+  color: #a49497;
+}
+
+[data-theme="dark"] .card-price {
+  color: #f6cb85;
+}
+

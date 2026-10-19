@@ -7,7 +7,7 @@ interface PizzaProps {
     name: string;
     description: string;
     price: number;
-    imageUrl: string;
+    imageUrl?: string;
     slices?: number;
     badge?: string;
   };

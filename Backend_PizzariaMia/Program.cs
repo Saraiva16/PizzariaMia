@@ -95,21 +95,71 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<PizzariaMia.Hubs.OrderTrackingHub>("/orderTrackingHub"); // <--- Mapeamento do Hub
 
-// Seed Admin User for Testing
+// Seed Employee and Admin Users for Testing
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    if (!context.Users.Any(u => u.Email == "admin@admin.com"))
+
+    // Seed Funcionário (Employee)
+    var employeePhone = "(11) 98888-8888";
+    var existingEmployee = context.Users.FirstOrDefault(u => u.Phone == employeePhone || u.Email == "funcionario@pizzariamia.com");
+    if (existingEmployee == null)
     {
         context.Users.Add(new PizzariaMia.Models.User
         {
-            Name = "Atendente Admin",
+            Name = "Funcionário Mia",
+            Email = "funcionario@pizzariamia.com",
+            Phone = employeePhone,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("funcionario123"),
+            Role = "Employee"
+        });
+    }
+    else
+    {
+        existingEmployee.Phone = employeePhone;
+        existingEmployee.Role = "Employee";
+        existingEmployee.PasswordHash = BCrypt.Net.BCrypt.HashPassword("funcionario123");
+    }
+
+    // Seed Admin
+    var adminPhone = "(11) 99999-9999";
+    var existingAdmin = context.Users.FirstOrDefault(u => u.Phone == adminPhone || u.Email == "admin@admin.com");
+    if (existingAdmin == null)
+    {
+        context.Users.Add(new PizzariaMia.Models.User
+        {
+            Name = "Administrador Mia",
             Email = "admin@admin.com",
-            PasswordHash = "admin123", // Lembrar que o AuthController valida diretamente a string no momento
+            Phone = adminPhone,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
             Role = "Admin"
         });
-        context.SaveChanges();
     }
+    else
+    {
+        existingAdmin.Phone = adminPhone;
+        existingAdmin.Role = "Admin";
+        existingAdmin.PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123");
+    }
+
+    context.SaveChanges();
+
+    // Garante que a tabela WhatsAppMessages e a coluna IsRead existam no PostgreSQL
+    context.Database.ExecuteSqlRaw(@"
+        CREATE TABLE IF NOT EXISTS ""WhatsAppMessages"" (
+            ""Id"" SERIAL PRIMARY KEY,
+            ""RemoteJid"" TEXT NOT NULL,
+            ""SenderPhone"" TEXT NOT NULL,
+            ""SenderName"" TEXT NOT NULL,
+            ""Text"" TEXT NOT NULL,
+            ""FromMe"" BOOLEAN NOT NULL DEFAULT FALSE,
+            ""MessageType"" TEXT NOT NULL DEFAULT 'text',
+            ""Timestamp"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+            ""CreatedAt"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+            ""IsRead"" BOOLEAN NOT NULL DEFAULT TRUE
+        );
+        ALTER TABLE ""WhatsAppMessages"" ADD COLUMN IF NOT EXISTS ""IsRead"" BOOLEAN NOT NULL DEFAULT TRUE;
+    ");
 }
 
 app.Run();

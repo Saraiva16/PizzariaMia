@@ -5,8 +5,10 @@ namespace PizzariaMia.DTOs
 {
     public class CheckoutDto
     {
-        public int AddressId { get; set; }
-        public PaymentMethod PaymentMethod { get; set; }
+        public int? UserId { get; set; }
+        public int? AddressId { get; set; }
+        public string? DeliveryAddress { get; set; }
+        public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.CreditCard;
         
         [Required]
         public List<CheckoutItemDto> Items { get; set; } = new();
